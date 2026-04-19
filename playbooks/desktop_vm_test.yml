@@ -1,0 +1,8 @@
+---
+- name: Enforce lighter Ubuntu desktop baseline for small test VMs
+  hosts: all
+  become: true
+  vars_files:
+    - ../vars/desktop_vm_test.yml
+  roles:
+    - role: desktop_software

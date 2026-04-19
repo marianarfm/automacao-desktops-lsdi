@@ -1,0 +1,22 @@
+---
+# Perfil de teste
+desktop_apt_packages:
+  - git
+  - python3
+  - python3-pip
+  - python3-venv
+  - openjdk-17-jdk
+  - gcc
+  - g++
+  - nodejs
+  - npm
+  - code
+  - google-chrome-stable
+  - texstudio
+
+desktop_archive_apps: []
+desktop_binary_apps: []
+desktop_shell_apps: []
+desktop_python_venv_apps: []
+desktop_android_sdk:
+  enabled: false

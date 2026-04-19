@@ -1,0 +1,7 @@
+---
+- name: Enable selected services
+  ansible.builtin.systemd:
+    name: "{{ item }}"
+    enabled: true
+    state: started
+  loop: "{{ desktop_enabled_services }}"

@@ -1,0 +1,6 @@
+---
+- name: Bootstrap ansible-pull on Ubuntu desktops
+  hosts: ubuntu_desktops
+  become: true
+  roles:
+    - role: desktop_pull_bootstrap

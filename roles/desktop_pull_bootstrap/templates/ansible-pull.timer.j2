@@ -1,0 +1,12 @@
+[Unit]
+Description=Run ansible-pull periodically for lab desktop maintenance
+
+[Timer]
+OnBootSec=5min
+OnUnitActiveSec={{ desktop_pull_interval }}
+RandomizedDelaySec={{ desktop_pull_randomized_delay }}
+Persistent=true
+Unit=ansible-pull.service
+
+[Install]
+WantedBy=timers.target

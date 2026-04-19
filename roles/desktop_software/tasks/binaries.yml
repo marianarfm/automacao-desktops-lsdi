@@ -1,0 +1,75 @@
+---
+- name: Ensure binary application cache directory exists
+  ansible.builtin.file:
+    path: "{{ desktop_download_dir }}"
+    state: directory
+    mode: "0755"
+
+- name: Ensure binary application directories exist
+  ansible.builtin.file:
+    path: "{{ item.install_root }}"
+    state: directory
+    mode: "0755"
+  loop: "{{ desktop_binary_apps | default([], true) }}"
+  loop_control:
+    label: "{{ item.name }}"
+  when: item.enabled | default(true) | bool
+
+- name: Download standalone binary applications
+  ansible.builtin.get_url:
+    url: "{{ item.url }}"
+    dest: "{{ desktop_download_dir }}/{{ item.download_filename | default(item.url | basename) }}"
+    checksum: "{{ item.checksum | default(omit) }}"
+    mode: "0644"
+  loop: "{{ desktop_binary_apps | default([], true) }}"
+  loop_control:
+    label: "{{ item.name }}"
+  when: item.enabled | default(true) | bool
+
+- name: Install standalone binary applications
+  ansible.builtin.copy:
+    src: "{{ desktop_download_dir }}/{{ item.download_filename | default(item.url | basename) }}"
+    dest: "{{ item.install_root }}/{{ item.installed_filename | default(item.download_filename | default(item.url | basename)) }}"
+    remote_src: true
+    mode: "{{ item.mode | default('0755') }}"
+  loop: "{{ desktop_binary_apps | default([], true) }}"
+  loop_control:
+    label: "{{ item.name }}"
+  when: item.enabled | default(true) | bool
+
+- name: Publish standalone binary launchers
+  ansible.builtin.file:
+    src: "{{ item.install_root }}/{{ item.installed_filename | default(item.download_filename | default(item.url | basename)) }}"
+    dest: "/usr/local/bin/{{ item.command_name }}"
+    state: link
+    force: true
+    follow: false
+  loop: "{{ desktop_binary_apps | default([], true) }}"
+  loop_control:
+    label: "{{ item.name }}"
+  when:
+    - item.enabled | default(true) | bool
+    - item.command_name is defined
+
+- name: Install desktop launchers for standalone binary apps
+  ansible.builtin.template:
+    src: app.desktop.j2
+    dest: "/usr/share/applications/{{ item.desktop.filename | default(item.command_name | default(item.name)) }}.desktop"
+    mode: "0644"
+  loop: "{{ desktop_binary_apps | default([], true) }}"
+  loop_control:
+    label: "{{ item.name }}"
+  when:
+    - item.enabled | default(true) | bool
+    - item.desktop is defined
+
+- name: Remove superseded desktop launchers for standalone binary apps
+  ansible.builtin.file:
+    path: "/usr/share/applications/{{ item.1 }}"
+    state: absent
+  loop: "{{ desktop_binary_apps | default([], true) | subelements('desktop.remove_filenames', skip_missing=True) }}"
+  loop_control:
+    label: "{{ item.0.name }} -> {{ item.1 }}"
+  when:
+    - item.0.enabled | default(true) | bool
+    - item.0.desktop is defined

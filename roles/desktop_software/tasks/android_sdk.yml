@@ -1,0 +1,87 @@
+---
+- name: Install Android SDK prerequisites
+  ansible.builtin.apt:
+    name: "{{ desktop_android_sdk.prerequisite_packages | default(['unzip']) }}"
+    state: present
+    update_cache: true
+    cache_valid_time: "{{ desktop_cache_valid_time }}"
+
+- name: Ensure Android SDK directories exist
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: "0755"
+  loop:
+    - "{{ desktop_android_sdk.path }}"
+    - "{{ desktop_android_sdk.path }}/cmdline-tools"
+    - "{{ desktop_android_sdk.path }}/licenses"
+    - "{{ desktop_download_dir }}"
+
+- name: Download Android SDK command-line tools
+  ansible.builtin.get_url:
+    url: "{{ desktop_android_sdk.cmdline_tools_url }}"
+    dest: "{{ desktop_download_dir }}/{{ desktop_android_sdk.cmdline_tools_filename | default(desktop_android_sdk.cmdline_tools_url | basename) }}"
+    checksum: "{{ desktop_android_sdk.cmdline_tools_checksum | default(omit) }}"
+    mode: "0644"
+
+- name: Extract Android SDK command-line tools
+  ansible.builtin.unarchive:
+    src: "{{ desktop_download_dir }}/{{ desktop_android_sdk.cmdline_tools_filename | default(desktop_android_sdk.cmdline_tools_url | basename) }}"
+    dest: "{{ desktop_android_sdk.path }}/cmdline-tools"
+    remote_src: true
+    creates: "{{ desktop_android_sdk.path }}/cmdline-tools/cmdline-tools/bin/sdkmanager"
+
+- name: Link Android SDK latest cmdline-tools directory
+  ansible.builtin.file:
+    src: "{{ desktop_android_sdk.path }}/cmdline-tools/cmdline-tools"
+    dest: "{{ desktop_android_sdk.path }}/cmdline-tools/latest"
+    state: link
+    force: true
+
+- name: Accept Android SDK licenses
+  ansible.builtin.shell: |
+    yes | "{{ desktop_android_sdk.path }}/cmdline-tools/latest/bin/sdkmanager" \
+      --sdk_root="{{ desktop_android_sdk.path }}" --licenses \
+      > "{{ desktop_download_dir }}/android-sdk-licenses.log" 2>&1
+    exit ${PIPESTATUS[1]}
+  args:
+    executable: /bin/bash
+  environment:
+    JAVA_HOME: /usr/lib/jvm/java-17-openjdk-amd64
+  changed_when: false
+  register: desktop_android_sdk_licenses
+  failed_when: desktop_android_sdk_licenses.rc != 0
+  when: desktop_android_sdk.accept_licenses | default(true) | bool
+
+- name: Install Android SDK packages
+  ansible.builtin.shell: |
+    set -o pipefail
+    "{{ desktop_android_sdk.path }}/cmdline-tools/latest/bin/sdkmanager" \
+      --sdk_root="{{ desktop_android_sdk.path }}" \
+      {{ (desktop_android_sdk.packages | default([])) | map('quote') | join(' ') }} \
+      > "{{ desktop_download_dir }}/android-sdk-packages.log" 2>&1
+  args:
+    executable: /bin/bash
+  environment:
+    JAVA_HOME: /usr/lib/jvm/java-17-openjdk-amd64
+  register: desktop_android_sdk_packages
+  changed_when: false
+  failed_when: desktop_android_sdk_packages.rc != 0
+  when: desktop_android_sdk.packages | default([]) | length > 0
+
+- name: Publish Android SDK tool launchers
+  ansible.builtin.file:
+    src: "{{ desktop_android_sdk.path }}/{{ item.source_relpath }}"
+    dest: "/usr/local/bin/{{ item.command_name }}"
+    state: link
+    force: true
+    follow: false
+  loop: "{{ desktop_android_sdk.symlinks | default([]) }}"
+  loop_control:
+    label: "{{ item.command_name }}"
+
+- name: Install Android SDK profile exports
+  ansible.builtin.template:
+    src: android-sdk.sh.j2
+    dest: /etc/profile.d/android-sdk.sh
+    mode: "0644"

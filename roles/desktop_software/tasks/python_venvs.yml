@@ -1,0 +1,37 @@
+---
+- name: Ensure Python virtualenv application directories exist
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: directory
+    mode: "0755"
+  loop: "{{ desktop_python_venv_apps }}"
+  loop_control:
+    label: "{{ item.name }}"
+
+- name: Create Python virtual environments
+  ansible.builtin.command:
+    cmd: "python3 -m venv {{ item.path }}"
+    creates: "{{ item.path }}/bin/activate"
+  loop: "{{ desktop_python_venv_apps }}"
+  loop_control:
+    label: "{{ item.name }}"
+
+- name: Install or update Python virtualenv packages
+  ansible.builtin.pip:
+    name: "{{ item.packages }}"
+    state: latest
+    virtualenv: "{{ item.path }}"
+  loop: "{{ desktop_python_venv_apps }}"
+  loop_control:
+    label: "{{ item.name }}"
+
+- name: Publish Python application launchers
+  ansible.builtin.file:
+    src: "{{ item.path }}/bin/{{ item.entrypoint | default(item.launcher_name) }}"
+    dest: "/usr/local/bin/{{ item.launcher_name }}"
+    state: link
+    force: true
+  loop: "{{ desktop_python_venv_apps }}"
+  loop_control:
+    label: "{{ item.name }}"
+  when: item.launcher_name is defined

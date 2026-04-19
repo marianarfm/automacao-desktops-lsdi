@@ -1,0 +1,6 @@
+---
+- name: Enforce Ubuntu desktop software baseline
+  hosts: all
+  become: true
+  roles:
+    - role: desktop_software

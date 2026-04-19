@@ -1,0 +1,27 @@
+---
+desktop_cache_valid_time: 3600
+desktop_download_dir: /var/cache/desktop-software
+desktop_upgrade_all_system_packages: false
+desktop_apt_package_state: latest
+desktop_manage_profile_script: false
+desktop_profile_exports: []
+desktop_enabled_services: []
+desktop_repo_prerequisites:
+  - apt-transport-https
+  - ca-certificates
+  - curl
+  - gnupg
+  - software-properties-common
+
+desktop_apt_repositories: []
+desktop_apt_repo_cleanup_rules: []
+desktop_apt_packages: []
+desktop_deb_apps: []
+desktop_archive_apps: []
+desktop_selected_archive_apps: []
+desktop_binary_apps: []
+desktop_shell_apps: []
+desktop_python_venv_apps: []
+desktop_archive_min_free_mb_default: 2048
+desktop_android_sdk:
+  enabled: false

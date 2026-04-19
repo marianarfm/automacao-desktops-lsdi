@@ -1,0 +1,13 @@
+---
+desktop_pull_repo_url: ""
+desktop_pull_repo_branch: main
+desktop_pull_playbook: playbooks/desktop.yml
+desktop_pull_destination: /opt/ansible-pull/repo
+desktop_pull_interval: 12h
+desktop_pull_randomized_delay: 20m
+desktop_pull_run_immediately: false
+desktop_pull_extra_args: ""
+desktop_pull_log_dir: /var/log/ansible-pull
+desktop_pull_required_packages:
+  - ansible
+  - git

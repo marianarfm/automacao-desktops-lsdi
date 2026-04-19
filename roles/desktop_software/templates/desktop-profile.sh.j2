@@ -1,0 +1,4 @@
+#!/usr/bin/env sh
+{% for export_item in desktop_profile_exports %}
+export {{ export_item.name }}="{{ export_item.value }}"
+{% endfor %}

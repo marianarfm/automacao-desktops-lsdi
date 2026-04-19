@@ -1,0 +1,49 @@
+---
+- name: Ensure shell installer cache directory exists
+  ansible.builtin.file:
+    path: "{{ desktop_download_dir }}"
+    state: directory
+    mode: "0755"
+
+- name: Download shell installer applications
+  ansible.builtin.get_url:
+    url: "{{ item.url }}"
+    dest: "{{ desktop_download_dir }}/{{ item.installer_filename | default(item.url | basename) }}"
+    checksum: "{{ item.checksum | default(omit) }}"
+    mode: "0755"
+  loop: "{{ desktop_shell_apps }}"
+  loop_control:
+    label: "{{ item.name }}"
+  when: item.enabled | default(true) | bool
+
+- name: Ensure shell application parent directories exist
+  ansible.builtin.file:
+    path: "{{ item.install_root | dirname }}"
+    state: directory
+    mode: "0755"
+  loop: "{{ desktop_shell_apps }}"
+  loop_control:
+    label: "{{ item.name }}"
+  when: item.enabled | default(true) | bool
+
+- name: Install shell-installer applications
+  ansible.builtin.command:
+    argv: "{{ item.command_argv }}"
+    creates: "{{ item.creates }}"
+  loop: "{{ desktop_shell_apps }}"
+  loop_control:
+    label: "{{ item.name }}"
+  when: item.enabled | default(true) | bool
+
+- name: Publish shell application launchers
+  ansible.builtin.file:
+    src: "{{ item.0.install_root }}/bin/{{ item.1.source_command }}"
+    dest: "/usr/local/bin/{{ item.1.command_name }}"
+    state: link
+    force: true
+    follow: false
+  loop: "{{ desktop_shell_apps | subelements('symlinks', skip_missing=True) }}"
+  loop_control:
+    label: "{{ item.0.name }} -> {{ item.1.command_name }}"
+  when:
+    - item.0.enabled | default(true) | bool

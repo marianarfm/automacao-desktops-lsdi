@@ -1,0 +1,23 @@
+[Desktop Entry]
+{% set desktop_filename = (item.command_name | default(item.name)) ~ '.desktop' %}
+{% set desktop_file_hint = '/usr/share/applications/' ~ desktop_filename %}
+{% set exec_path = item.command_path | default('/usr/local/bin/' ~ (item.command_name | default(item.name))) %}
+Version=1.0
+Type=Application
+Name={{ item.desktop.name }}
+Exec=env BAMF_DESKTOP_FILE_HINT={{ desktop_file_hint }} {{ exec_path }}
+{% if item.desktop.icon_path is defined %}
+Icon={{ item.desktop.icon_path }}
+{% elif item.desktop.icon_name is defined %}
+Icon={{ item.desktop.icon_name }}
+{% elif item.desktop.icon_relpath is defined and item.binary_relpath is defined %}
+Icon={{ item.install_root }}/current/{{ item.desktop.icon_relpath }}
+{% elif item.desktop.icon_relpath is defined %}
+Icon={{ item.install_root }}/{{ item.desktop.icon_relpath }}
+{% endif %}
+Terminal=false
+Categories={{ item.desktop.categories | default('Development;') }}
+{% if item.desktop.startup_wm_class is defined %}
+StartupWMClass={{ item.desktop.startup_wm_class }}
+{% endif %}
+StartupNotify=true

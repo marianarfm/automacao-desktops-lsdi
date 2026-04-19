@@ -1,0 +1,33 @@
+---
+- name: Optionally upgrade the full operating system
+  ansible.builtin.apt:
+    upgrade: dist
+    update_cache: true
+    cache_valid_time: "{{ desktop_cache_valid_time }}"
+  when: desktop_upgrade_all_system_packages | bool
+
+- name: Explain why package install is skipped in first-run check mode
+  ansible.builtin.debug:
+    msg: >-
+      Skipping managed package resolution in check mode because repository
+      definitions would change in this run. Run the playbook once without
+      --check, then dry-runs will be meaningful for repository-backed packages.
+  when:
+    - ansible_check_mode
+    - (desktop_repo_keys.changed | default(false)) or (desktop_repo_defs.changed | default(false))
+
+- name: Install and update managed APT packages
+  ansible.builtin.apt:
+    name: "{{ desktop_apt_packages }}"
+    state: "{{ desktop_apt_package_state }}"
+    update_cache: true
+    cache_valid_time: "{{ desktop_cache_valid_time }}"
+  when:
+    - desktop_apt_packages | length > 0
+    - not (
+        ansible_check_mode and
+        (
+          (desktop_repo_keys.changed | default(false)) or
+          (desktop_repo_defs.changed | default(false))
+        )
+      )

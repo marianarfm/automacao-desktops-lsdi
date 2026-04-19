@@ -1,0 +1,6 @@
+---
+- name: Install desktop profile exports
+  ansible.builtin.template:
+    src: desktop-profile.sh.j2
+    dest: /etc/profile.d/lab-desktop-tools.sh
+    mode: "0644"

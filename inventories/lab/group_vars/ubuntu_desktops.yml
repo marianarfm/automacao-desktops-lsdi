@@ -1,0 +1,276 @@
+---
+# Comportamento principal
+desktop_cache_valid_time: 3600
+desktop_download_dir: /var/cache/desktop-software
+desktop_upgrade_all_system_packages: false
+desktop_apt_package_state: latest
+desktop_manage_profile_script: true
+desktop_profile_exports:
+  - name: ESPER_HOME
+    value: /opt/esper/current
+desktop_enabled_services: []
+desktop_repo_prerequisites:
+  - apt-transport-https
+  - ca-certificates
+  - curl
+  - gnupg
+  - software-properties-common
+
+# Configuração do modo pull
+desktop_pull_repo_url: https://git.example.edu/lab/ansible-desktops.git
+desktop_pull_repo_branch: main
+desktop_pull_playbook: playbooks/desktop.yml
+desktop_pull_destination: /opt/ansible-pull/repo
+desktop_pull_interval: 12h
+desktop_pull_randomized_delay: 20m
+desktop_pull_run_immediately: false
+desktop_pull_extra_args: ""
+
+# Repositórios oficiais e suportados para manter os pacotes atualizados via APT
+desktop_apt_repositories:
+  - name: vscode
+    key_url: https://packages.microsoft.com/keys/microsoft.asc
+    key_path: /etc/apt/keyrings/microsoft.asc
+    repo: "deb [arch=amd64 signed-by=/etc/apt/keyrings/microsoft.asc] https://packages.microsoft.com/repos/code stable main"
+    filename: vscode
+
+  - name: docker
+    key_url: https://download.docker.com/linux/ubuntu/gpg
+    key_path: /etc/apt/keyrings/docker.asc
+    repo: "deb [arch=amd64 signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu {{ ansible_facts['distribution_release'] }} stable"
+    filename: docker
+
+  - name: google-chrome
+    key_url: https://dl.google.com/linux/linux_signing_key.pub
+    key_path: /etc/apt/keyrings/google-chrome.asc
+    repo: "deb [arch=amd64 signed-by=/etc/apt/keyrings/google-chrome.asc] https://dl.google.com/linux/chrome/deb/ stable main"
+    filename: google-chrome
+
+  - name: pgadmin4
+    key_url: https://www.pgadmin.org/static/packages_pgadmin_org.pub
+    key_path: /etc/apt/keyrings/packages-pgadmin-org.asc
+    repo: "deb [signed-by=/etc/apt/keyrings/packages-pgadmin-org.asc] https://ftp.postgresql.org/pub/pgadmin/pgadmin4/apt/{{ ansible_facts['distribution_release'] }} pgadmin4 main"
+    filename: pgadmin4
+    enabled: "{{ ansible_facts['distribution_release'] in ['jammy', 'noble'] }}"
+
+  - name: mongodb-org
+    key_url: https://pgp.mongodb.com/server-8.0.asc
+    key_path: /etc/apt/keyrings/mongodb-server-8.0.asc
+    repo: "deb [arch=amd64,arm64 signed-by=/etc/apt/keyrings/mongodb-server-8.0.asc] https://repo.mongodb.org/apt/ubuntu {{ ansible_facts['distribution_release'] }}/mongodb-org/8.0 multiverse"
+    filename: mongodb-org-8.0
+    enabled: "{{ ansible_facts['distribution_release'] in ['jammy', 'noble'] }}"
+
+# Remove arquivos de fonte obsoletos que definem o mesmo repositório com keyrings diferentes
+desktop_apt_repo_cleanup_rules:
+  - name: vscode
+    match: https://packages.microsoft.com/repos/code
+    managed_filenames:
+      - vscode.list
+
+# Pacotes gerenciados pelo APT
+desktop_apt_packages:
+  - git
+  - python3
+  - python3-pip
+  - python3-venv
+  - openjdk-17-jdk
+  - gcc
+  - g++
+  - nodejs
+  - npm
+  - dotnet-sdk-8.0
+  - code
+  - docker-ce
+  - docker-ce-cli
+  - containerd.io
+  - docker-buildx-plugin
+  - docker-compose-plugin
+  - google-chrome-stable
+  - postgresql
+  - postgresql-client
+  - pgadmin4-desktop
+  - mysql-server
+  - mongodb-org
+  - libreoffice
+  - krita
+  - texstudio
+  - texlive-latex-recommended
+  - texlive-latex-extra
+  - texlive-fonts-recommended
+
+# Exemplo de aplicação Python que deve sempre existir e permanecer atualizada
+desktop_python_venv_apps:
+  - name: jupyter-notebook
+    path: /opt/jupyter-notebook
+    packages:
+      - notebook
+    launcher_name: jupyter-notebook
+    entrypoint: jupyter-notebook
+
+# Exemplos de aplicações gráficas instaladas a partir de arquivos compactados
+# Elas continuam atualizáveis via Ansible, mas apenas quando a versão ou a URL for alterada aqui
+desktop_archive_apps:
+  - name: android-studio
+    local_src: "{{ playbook_dir | dirname }}/artifacts/android-studio/android-studio-panda3-patch1-linux.tar.gz"
+    local_checksum: 153009f6b64fc0b80803fb8f2a5e1df61681c4b2f83b667e1fcb18e91a9a78e0
+    archive_file: android-studio-panda3-patch1-linux.tar.gz
+    install_root: /opt/android-studio
+    extracted_dir_name: android-studio
+    binary_relpath: bin/studio.sh
+    command_name: android-studio
+    min_free_mb: 8192
+    enabled: true
+    desktop:
+      name: Android Studio
+      icon_relpath: bin/studio.svg
+      categories: Development;IDE;
+      startup_wm_class: jetbrains-studio
+
+  - name: clion
+    url: https://download.jetbrains.com/cpp/CLion-2025.3.3.tar.gz
+    archive_file: CLion-2025.3.3.tar.gz
+    install_root: /opt/clion
+    extracted_dir_name: clion-2025.3.3
+    binary_relpath: bin/clion.sh
+    command_name: clion
+    min_free_mb: 8192
+    desktop:
+      name: CLion
+      icon_relpath: bin/clion.svg
+      categories: Development;IDE;
+      startup_wm_class: jetbrains-clion
+
+  - name: eclipse-ide
+    url: https://download.eclipse.org/technology/epp/downloads/release/2026-03/R/eclipse-java-2026-03-R-linux-gtk-x86_64.tar.gz
+    archive_file: eclipse-java-2026-03-R-linux-gtk-x86_64.tar.gz
+    install_root: /opt/eclipse
+    extracted_dir_name: eclipse
+    binary_relpath: eclipse
+    command_name: eclipse
+    min_free_mb: 4096
+    desktop:
+      name: Eclipse IDE
+      icon_relpath: icon.xpm
+      categories: Development;IDE;
+
+  - name: arduino-ide
+    url: https://github.com/arduino/arduino-ide/releases/download/2.3.8/arduino-ide_2.3.8_Linux_64bit.zip
+    archive_file: arduino-ide_2.3.8_Linux_64bit.zip
+    install_root: /opt/arduino-ide
+    extracted_dir_name: arduino-ide_2.3.8_Linux_64bit
+    binary_relpath: arduino-ide
+    command_name: arduino-ide
+    min_free_mb: 2048
+    post_extract_permissions:
+      - path: arduino-ide
+        mode: "0755"
+      - path: chrome-sandbox
+        mode: "4755"
+    desktop:
+      name: Arduino IDE
+      icon_relpath: resources/app/resources/icons/512x512.png
+      categories: Development;IDE;Electronics;
+
+  - name: postman
+    url: https://dl.pstmn.io/download/latest/linux64
+    archive_file: postman-latest.tar.gz
+    install_root: /opt/postman
+    extracted_dir_name: Postman
+    binary_relpath: Postman
+    command_name: postman
+    desktop:
+      name: Postman
+      icon_relpath: app/resources/app/assets/icon.png
+      categories: Development;Network;
+
+  - name: intellij-idea-community
+    url: https://download.jetbrains.com/idea/ideaIC-2025.1.1.tar.gz
+    archive_file: ideaIC-2025.1.1.tar.gz
+    install_root: /opt/intellij-idea-community
+    extracted_dir_name: idea-IC-251.25410.109
+    binary_relpath: bin/idea.sh
+    command_name: idea
+    desktop:
+      name: IntelliJ IDEA Community
+      filename: jetbrains-idea
+      remove_filenames:
+        - idea.desktop
+      icon_relpath: bin/idea.svg
+      categories: Development;IDE;
+      startup_wm_class: jetbrains-idea
+
+  - name: pycharm-community
+    url: https://download.jetbrains.com/python/pycharm-community-2025.1.tar.gz
+    archive_file: pycharm-community-2025.1.tar.gz
+    install_root: /opt/pycharm-community
+    extracted_dir_name: pycharm-community-2025.1
+    binary_relpath: bin/pycharm.sh
+    command_name: pycharm
+    desktop:
+      name: PyCharm Community
+      icon_relpath: bin/pycharm.svg
+      categories: Development;IDE;
+      startup_wm_class: jetbrains-pycharm-ce
+
+  - name: esper
+    url: https://esper.espertech.com/distributions/esper-9.0.0.tar.gz
+    archive_file: esper-9.0.0.tar.gz
+    install_root: /opt/esper
+    extracted_dir_name: esper-9.0.0
+    min_free_mb: 1024
+
+# Instaladores via shell, como o Anaconda
+desktop_shell_apps:
+  - name: anaconda
+    url: https://repo.anaconda.com/archive/Anaconda3-2025.06-1-Linux-x86_64.sh
+    installer_filename: Anaconda3-2025.06-1-Linux-x86_64.sh
+    install_root: /opt/anaconda3
+    creates: /opt/anaconda3/bin/conda
+    command_argv:
+      - /bin/bash
+      - /var/cache/desktop-software/Anaconda3-2025.06-1-Linux-x86_64.sh
+      - -b
+      - -p
+      - /opt/anaconda3
+    symlinks:
+      - source_command: conda
+        command_name: conda
+      - source_command: anaconda-navigator
+        command_name: anaconda-navigator
+
+# Instaladores .deb diretos
+desktop_deb_apps:
+  - name: mqttx
+    url: https://github.com/emqx/MQTTX/releases/download/v1.13.0/MQTTX_1.13.0_amd64.deb
+    filename: MQTTX_1.13.0_amd64.deb
+    command_name: mqttx
+    command_path: /usr/bin/mqttx
+    desktop:
+      name: MQTTX
+      categories: Development;Network;
+      icon_path: /usr/share/icons/hicolor/0x0/apps/mqttx.png
+      startup_wm_class: MQTTX
+
+  - name: mysql-workbench-community
+    local_src: "{{ playbook_dir | dirname }}/artifacts/mysql-workbench/mysql-workbench-community.deb"
+
+# Ferramentas de linha de comando do Android SDK com um pequeno conjunto padrão de pacotes
+desktop_android_sdk:
+  enabled: true
+  path: /opt/android-sdk
+  cmdline_tools_url: https://dl.google.com/android/repository/commandlinetools-linux-14742923_latest.zip
+  cmdline_tools_filename: commandlinetools-linux-14742923_latest.zip
+  prerequisite_packages:
+    - unzip
+  accept_licenses: true
+  packages:
+    - platform-tools
+    - build-tools;35.0.0
+    - platforms;android-35
+  symlinks:
+    - source_relpath: cmdline-tools/latest/bin/sdkmanager
+      command_name: sdkmanager
+    - source_relpath: cmdline-tools/latest/bin/avdmanager
+      command_name: avdmanager
+    - source_relpath: platform-tools/adb
+      command_name: adb

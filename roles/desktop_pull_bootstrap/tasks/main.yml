@@ -1,0 +1,63 @@
+---
+- name: Validate target operating system
+  ansible.builtin.assert:
+    that:
+      - ansible_facts['os_family'] == "Debian"
+      - ansible_facts['distribution'] == "Ubuntu"
+    fail_msg: "This bootstrap role currently supports Ubuntu desktops only."
+
+- name: Ensure pull-mode repository URL is defined
+  ansible.builtin.assert:
+    that:
+      - desktop_pull_repo_url | length > 0
+    fail_msg: "Set desktop_pull_repo_url in group_vars before bootstrapping ansible-pull."
+
+- name: Install ansible-pull prerequisites
+  ansible.builtin.apt:
+    name: "{{ desktop_pull_required_packages }}"
+    state: present
+    update_cache: true
+
+- name: Ensure ansible-pull directories exist
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: "0755"
+  loop:
+    - /opt/ansible-pull
+    - "{{ desktop_pull_log_dir }}"
+
+- name: Install ansible-pull wrapper
+  ansible.builtin.template:
+    src: ansible-pull-run.sh.j2
+    dest: /usr/local/sbin/ansible-pull-run
+    mode: "0755"
+
+- name: Install ansible-pull systemd service
+  ansible.builtin.template:
+    src: ansible-pull.service.j2
+    dest: /etc/systemd/system/ansible-pull.service
+    mode: "0644"
+  notify: Reload systemd
+
+- name: Install ansible-pull systemd timer
+  ansible.builtin.template:
+    src: ansible-pull.timer.j2
+    dest: /etc/systemd/system/ansible-pull.timer
+    mode: "0644"
+  notify: Reload systemd
+
+- name: Flush handlers so systemd sees new units immediately
+  ansible.builtin.meta: flush_handlers
+
+- name: Enable and start ansible-pull timer
+  ansible.builtin.systemd:
+    name: ansible-pull.timer
+    enabled: true
+    state: started
+
+- name: Optionally run ansible-pull immediately
+  ansible.builtin.systemd:
+    name: ansible-pull.service
+    state: started
+  when: desktop_pull_run_immediately | bool

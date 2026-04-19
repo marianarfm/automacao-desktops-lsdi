@@ -1,0 +1,40 @@
+---
+- name: Validate target operating system
+  ansible.builtin.assert:
+    that:
+      - ansible_facts['os_family'] == "Debian"
+      - ansible_facts['distribution'] == "Ubuntu"
+    fail_msg: "This role currently supports Ubuntu desktops only."
+
+- name: Configure repositories
+  ansible.builtin.include_tasks: repos.yml
+
+- name: Install and update APT-managed software
+  ansible.builtin.include_tasks: apt.yml
+
+- name: Install direct DEB applications
+  ansible.builtin.include_tasks: debs.yml
+
+- name: Install archive-based applications
+  ansible.builtin.include_tasks: archives.yml
+
+- name: Install standalone binary applications
+  ansible.builtin.include_tasks: binaries.yml
+
+- name: Install shell-installer applications
+  ansible.builtin.include_tasks: shell_apps.yml
+
+- name: Install Python virtualenv applications
+  ansible.builtin.include_tasks: python_venvs.yml
+
+- name: Install Android SDK components
+  ansible.builtin.include_tasks: android_sdk.yml
+  when: desktop_android_sdk.enabled | default(false) | bool
+
+- name: Configure profile exports
+  ansible.builtin.include_tasks: profile.yml
+  when: desktop_manage_profile_script | bool
+
+- name: Enable selected services
+  ansible.builtin.include_tasks: services.yml
+  when: desktop_enabled_services | length > 0

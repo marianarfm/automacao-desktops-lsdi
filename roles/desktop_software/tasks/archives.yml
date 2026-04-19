@@ -1,0 +1,191 @@
+---
+- name: Ensure software cache directory exists
+  ansible.builtin.file:
+    path: "{{ desktop_download_dir }}"
+    state: directory
+    mode: "0755"
+
+- name: Ensure local artifact definitions exist on the control node
+  ansible.builtin.stat:
+    path: "{{ item.local_src }}"
+    checksum_algorithm: "{{ item.local_checksum_algorithm | default('sha256') }}"
+  loop: "{{ desktop_archive_apps }}"
+  loop_control:
+    label: "{{ item.name }}"
+  register: desktop_local_archive_stats
+  delegate_to: localhost
+  become: false
+  when:
+    - item.enabled | default(true) | bool
+    - item.local_src is defined
+    - desktop_selected_archive_apps | default([], true) | length == 0 or item.name in (desktop_selected_archive_apps | default([], true))
+
+- name: Fail if a required local archive is missing
+  ansible.builtin.assert:
+    that:
+      - item.stat.exists
+      - item.stat.isreg
+    fail_msg: >-
+      Local installer for {{ item.item.name }} was not found at {{ item.item.local_src }}.
+      Put the vendor file there and rerun the playbook.
+  loop: "{{ desktop_local_archive_stats.results | default([]) }}"
+  loop_control:
+    label: "{{ item.item.name }}"
+  when:
+    - item.skipped is not defined or not item.skipped
+
+- name: Validate local archive checksum when provided
+  ansible.builtin.assert:
+    that:
+      - item.stat.checksum == item.item.local_checksum
+    fail_msg: >-
+      Local installer checksum mismatch for {{ item.item.name }}.
+      Expected {{ item.item.local_checksum }}, got {{ item.stat.checksum }}.
+  loop: "{{ desktop_local_archive_stats.results | default([]) }}"
+  loop_control:
+    label: "{{ item.item.name }}"
+  when:
+    - item.skipped is not defined or not item.skipped
+    - item.item.local_checksum is defined
+
+- name: Ensure archive application base directories exist
+  ansible.builtin.file:
+    path: "{{ item.install_root }}/releases"
+    state: directory
+    mode: "0755"
+  loop: "{{ desktop_archive_apps }}"
+  loop_control:
+    label: "{{ item.name }}"
+  when:
+    - item.enabled | default(true) | bool
+    - desktop_selected_archive_apps | default([], true) | length == 0 or item.name in (desktop_selected_archive_apps | default([], true))
+
+- name: Check free space for archive applications
+  ansible.builtin.command:
+    argv:
+      - df
+      - -Pm
+      - "{{ item.install_root }}/releases"
+  loop: "{{ desktop_archive_apps }}"
+  loop_control:
+    label: "{{ item.name }}"
+  register: desktop_archive_df
+  changed_when: false
+  when:
+    - item.enabled | default(true) | bool
+    - desktop_selected_archive_apps | default([], true) | length == 0 or item.name in (desktop_selected_archive_apps | default([], true))
+
+- name: Validate free space before extracting archive applications
+  ansible.builtin.assert:
+    that:
+      - (item.stdout_lines[1].split()[3] | int) >= (item.item.min_free_mb | default(desktop_archive_min_free_mb_default) | int)
+    fail_msg: >-
+      Not enough free space to install {{ item.item.name }} on {{ inventory_hostname }}.
+      Required at least {{ item.item.min_free_mb | default(desktop_archive_min_free_mb_default) }} MB free,
+      but only {{ item.stdout_lines[1].split()[3] }} MB is available on the target filesystem.
+      Increase disk space, remove heavy packages from the test profile, or disable this app for small VMs.
+  loop: "{{ desktop_archive_df.results | default([]) }}"
+  loop_control:
+    label: "{{ item.item.name }}"
+  when:
+    - item.skipped is not defined or not item.skipped
+    - item.item.enabled | default(true) | bool
+    - desktop_selected_archive_apps | default([], true) | length == 0 or item.item.name in (desktop_selected_archive_apps | default([], true))
+
+- name: Download archive applications
+  ansible.builtin.get_url:
+    url: "{{ item.url }}"
+    dest: "{{ desktop_download_dir }}/{{ item.archive_file | default(item.url | basename) }}"
+    checksum: "{{ item.checksum | default(omit) }}"
+    mode: "0644"
+  loop: "{{ desktop_archive_apps }}"
+  loop_control:
+    label: "{{ item.name }}"
+  when:
+    - item.enabled | default(true) | bool
+    - item.local_src is not defined
+    - desktop_selected_archive_apps | default([], true) | length == 0 or item.name in (desktop_selected_archive_apps | default([], true))
+
+- name: Extract archive applications
+  ansible.builtin.unarchive:
+    src: "{{ item.local_src | default(desktop_download_dir ~ '/' ~ (item.archive_file | default(item.url | basename))) }}"
+    dest: "{{ item.install_root }}/releases"
+    remote_src: "{{ false if item.local_src is defined else true }}"
+    creates: >-
+      {{
+        item.install_root ~ '/releases/' ~ item.extracted_dir_name ~ '/' ~ item.binary_relpath
+        if item.binary_relpath is defined
+        else item.install_root ~ '/releases/' ~ item.extracted_dir_name
+      }}
+  loop: "{{ desktop_archive_apps }}"
+  loop_control:
+    label: "{{ item.name }}"
+  when:
+    - item.enabled | default(true) | bool
+    - desktop_selected_archive_apps | default([], true) | length == 0 or item.name in (desktop_selected_archive_apps | default([], true))
+
+- name: Point current symlink at selected release
+  ansible.builtin.file:
+    src: "{{ item.install_root }}/releases/{{ item.extracted_dir_name }}"
+    dest: "{{ item.install_root }}/current"
+    state: link
+    force: true
+    follow: false
+  loop: "{{ desktop_archive_apps }}"
+  loop_control:
+    label: "{{ item.name }}"
+  when:
+    - item.enabled | default(true) | bool
+    - desktop_selected_archive_apps | default([], true) | length == 0 or item.name in (desktop_selected_archive_apps | default([], true))
+
+- name: Apply archive post-extraction permissions
+  ansible.builtin.file:
+    path: "{{ item.0.install_root }}/current/{{ item.1.path }}"
+    mode: "{{ item.1.mode }}"
+  loop: "{{ desktop_archive_apps | default([], true) | subelements('post_extract_permissions', skip_missing=True) }}"
+  loop_control:
+    label: "{{ item.0.name }} -> {{ item.1.path }}"
+  when:
+    - item.0.enabled | default(true) | bool
+    - desktop_selected_archive_apps | default([], true) | length == 0 or item.0.name in (desktop_selected_archive_apps | default([], true))
+
+- name: Publish launcher symlinks
+  ansible.builtin.file:
+    src: "{{ item.install_root }}/current/{{ item.binary_relpath }}"
+    dest: "/usr/local/bin/{{ item.command_name }}"
+    state: link
+    force: true
+    follow: false
+  loop: "{{ desktop_archive_apps }}"
+  loop_control:
+    label: "{{ item.name }}"
+  when:
+    - item.enabled | default(true) | bool
+    - item.command_name is defined
+    - item.binary_relpath is defined
+    - desktop_selected_archive_apps | default([], true) | length == 0 or item.name in (desktop_selected_archive_apps | default([], true))
+
+- name: Install desktop launchers for archive apps
+  ansible.builtin.template:
+    src: app.desktop.j2
+    dest: "/usr/share/applications/{{ item.desktop.filename | default(item.command_name | default(item.name)) }}.desktop"
+    mode: "0644"
+  loop: "{{ desktop_archive_apps }}"
+  loop_control:
+    label: "{{ item.name }}"
+  when:
+    - item.enabled | default(true) | bool
+    - item.desktop is defined
+    - desktop_selected_archive_apps | default([], true) | length == 0 or item.name in (desktop_selected_archive_apps | default([], true))
+
+- name: Remove superseded desktop launchers for archive apps
+  ansible.builtin.file:
+    path: "/usr/share/applications/{{ item.1 }}"
+    state: absent
+  loop: "{{ desktop_archive_apps | default([], true) | subelements('desktop.remove_filenames', skip_missing=True) }}"
+  loop_control:
+    label: "{{ item.0.name }} -> {{ item.1 }}"
+  when:
+    - item.0.enabled | default(true) | bool
+    - item.0.desktop is defined
+    - desktop_selected_archive_apps | default([], true) | length == 0 or item.0.name in (desktop_selected_archive_apps | default([], true))

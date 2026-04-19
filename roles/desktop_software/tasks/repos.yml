@@ -1,0 +1,105 @@
+---
+- name: Install APT repository prerequisites
+  ansible.builtin.apt:
+    name: "{{ desktop_repo_prerequisites }}"
+    state: present
+    update_cache: true
+    cache_valid_time: "{{ desktop_cache_valid_time }}"
+
+- name: Ensure APT keyring directory exists
+  ansible.builtin.file:
+    path: /etc/apt/keyrings
+    state: directory
+    mode: "0755"
+
+- name: Find existing APT source definition files
+  ansible.builtin.find:
+    paths: /etc/apt/sources.list.d
+    file_type: file
+    patterns:
+      - "*.list"
+      - "*.sources"
+  register: desktop_existing_source_files
+  when: desktop_apt_repo_cleanup_rules | length > 0
+
+- name: Read existing APT source definition files
+  ansible.builtin.slurp:
+    src: "{{ item.path }}"
+  loop: "{{ desktop_existing_source_files.files | default([]) }}"
+  loop_control:
+    label: "{{ item.path }}"
+  register: desktop_existing_source_contents
+  when: desktop_apt_repo_cleanup_rules | length > 0
+
+- name: Build list of stale repository source files
+  ansible.builtin.set_fact:
+    desktop_stale_repo_files: "{{ (desktop_stale_repo_files | default([])) + [item.1.source] }}"
+  loop: "{{ desktop_apt_repo_cleanup_rules | product(desktop_existing_source_contents.results | default([])) | list }}"
+  loop_control:
+    label: "{{ item.1.source }}"
+  when:
+    - desktop_apt_repo_cleanup_rules | length > 0
+    - item.1.content is defined
+    - item.0.match in (item.1.content | b64decode)
+    - >-
+      (item.1.source | basename) not in (
+        item.0.managed_filenames
+        if (item.0.managed_filenames is defined)
+        else [item.0.managed_filename ~ '.list']
+      )
+
+- name: Remove stale repository source files
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: absent
+  loop: "{{ desktop_stale_repo_files | default([]) | unique }}"
+  when: desktop_stale_repo_files | default([]) | length > 0
+
+- name: Remove legacy MySQL source files with expired signing key references
+  ansible.builtin.lineinfile:
+    path: "{{ item }}"
+    regexp: '^deb .*repo\.mysql\.com/apt/ubuntu/.*signed-by=/etc/apt/keyrings/mysql-2023\.asc.*$'
+    state: absent
+  loop:
+    - /etc/apt/sources.list
+    - /etc/apt/sources.list.d/mysql-tools.list
+    - /etc/apt/sources.list.d/mysql.list
+  when: "'mysql-tools' in (desktop_apt_repositories | map(attribute='name') | list)"
+  ignore_errors: true
+
+- name: Remove expired MySQL keyring file
+  ansible.builtin.file:
+    path: /etc/apt/keyrings/mysql-2023.asc
+    state: absent
+  when: "'mysql-tools' in (desktop_apt_repositories | map(attribute='name') | list)"
+
+- name: Download repository signing keys
+  ansible.builtin.get_url:
+    url: "{{ item.key_url }}"
+    dest: "{{ item.key_path }}"
+    mode: "0644"
+  loop: "{{ desktop_apt_repositories }}"
+  loop_control:
+    label: "{{ item.name }}"
+  when:
+    - item.key_url is defined
+    - item.key_path is defined
+    - item.enabled | default(true) | bool
+  register: desktop_repo_keys
+
+- name: Configure APT repositories
+  ansible.builtin.apt_repository:
+    repo: "{{ item.repo }}"
+    filename: "{{ item.filename | default(item.name) }}"
+    state: present
+    update_cache: false
+  loop: "{{ desktop_apt_repositories }}"
+  loop_control:
+    label: "{{ item.name }}"
+  when: item.enabled | default(true) | bool
+  register: desktop_repo_defs
+
+- name: Refresh APT cache after repository changes
+  ansible.builtin.apt:
+    update_cache: true
+  when: desktop_repo_keys.changed or desktop_repo_defs.changed
