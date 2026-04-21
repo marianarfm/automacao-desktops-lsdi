@@ -119,7 +119,7 @@ desktop_archive_apps:
     binary_relpath: bin/studio.sh
     command_name: android-studio
     min_free_mb: 8192
-    enabled: true
+    enabled: false
     desktop:
       name: Android Studio
       icon_relpath: bin/studio.svg
@@ -252,6 +252,7 @@ desktop_deb_apps:
       startup_wm_class: MQTTX
 
   - name: mysql-workbench-community
+    enabled: false
     local_src: "{{ playbook_dir | dirname }}/artifacts/mysql-workbench/mysql-workbench-community.deb"
 
 # Ferramentas de linha de comando do Android SDK com um pequeno conjunto padrão de pacotes
