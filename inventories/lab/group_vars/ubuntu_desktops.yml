@@ -2,7 +2,7 @@
 # Comportamento principal
 desktop_cache_valid_time: 3600
 desktop_download_dir: /var/cache/desktop-software
-desktop_upgrade_all_system_packages: false
+desktop_upgrade_all_system_packages: true
 desktop_apt_package_state: latest
 desktop_manage_profile_script: true
 desktop_profile_exports:
@@ -17,7 +17,7 @@ desktop_repo_prerequisites:
   - software-properties-common
 
 # Configuração do modo pull
-desktop_pull_repo_url: https://git.example.edu/lab/ansible-desktops.git
+desktop_pull_repo_url: https://github.com/marianarfm/automacao-desktops-lsdi.git
 desktop_pull_repo_branch: main
 desktop_pull_playbook: playbooks/desktop.yml
 desktop_pull_destination: /opt/ansible-pull/repo

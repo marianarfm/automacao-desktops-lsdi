@@ -2,5 +2,7 @@
 - name: Enforce Ubuntu desktop software baseline
   hosts: all
   become: true
+  vars_files:
+    - ../inventories/lab/group_vars/ubuntu_desktops.yml
   roles:
     - role: desktop_software
