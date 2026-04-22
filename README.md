@@ -1,11 +1,15 @@
-# Automação de Desktops Ubuntu para o LSDi
+# Automação para Desktops do LSDi
 Esse repositório implementa uma configuração Ansible para desktops Ubuntu do Laboratório de Sistemas Distribuídos (LSDi) com base em dois playbooks:
+
 1. `playbooks/desktop.yml`
+   
    Aplica o estado de software desejado a um host. Instala software ausente, atualiza pacotes gerenciados e configura software de fornecedores distribuído via APT, arquivos `.deb` diretos, arquivos compactados, instaladores de shell e ambientes virtuais Python
+
 2. `playbooks/bootstrap_pull.yml`
+   
    Instala o `ansible` e o `git` no host e configura um temporizador `systemd` para o `ansible-pull`, possibilitando a manutenção autônoma de desktops durante janelas de tempo agendadas
 
-## Pacotes gerenciados
+## Software gerenciado
 - Desenvolvimento mobile
   - Android Studio
   - Ferramentas de linha de comando do Android SDK e pacotes selecionados do SDK
@@ -43,17 +47,17 @@ Esse repositório implementa uma configuração Ansible para desktops Ubuntu do 
   - Krita
 
 ### Observações
-As aplicações **Android Studio** e **MySQL Workbench Community** estão temporariamente desativadas do gerenciamento de pacotes
+As aplicações **Android Studio** e **MySQL Workbench Community** estão temporariamente desativadas do gerenciamento de software
 - O fluxo de download do Android Studio exige a aceitação dos termos do fornecedor
 - O repositório APT da Oracle para o MySQL Workbench apresentou instabilidade no Ubuntu 24.04 durante os testes
 
 Esses problemas dificultam a instalação/atualização automatizada por downloads HTTP
 
-## Como implementar a configuração
+## Como utilizar
 ### 1. Edite o inventário
 Atualize `inventories/lab/hosts.yml` com os IPs ou nomes de host reais dos desktops e os usuários SSH usados ​​no ambiente
 
-### 2. Revise o catálogo de pacotes
+### 2. Revise o catálogo de software
 Se necessário, edite o arquivo `inventories/lab/group_vars/ubuntu_desktops.yml` para refletir a política atual do laboratório
 
 Em particular, revise:
