@@ -24,16 +24,32 @@
     checksum: "{{ desktop_android_sdk.cmdline_tools_checksum | default(omit) }}"
     mode: "0644"
 
+- name: Ensure Android SDK cmdline-tools release directory exists
+  ansible.builtin.file:
+    path: "{{ desktop_android_sdk.path }}/cmdline-tools/{{ desktop_android_sdk.cmdline_tools_release_dir | default(desktop_android_sdk.cmdline_tools_version) }}"
+    state: directory
+    mode: "0755"
+
 - name: Extract Android SDK command-line tools
   ansible.builtin.unarchive:
     src: "{{ desktop_download_dir }}/{{ desktop_android_sdk.cmdline_tools_filename | default(desktop_android_sdk.cmdline_tools_url | basename) }}"
-    dest: "{{ desktop_android_sdk.path }}/cmdline-tools"
+    dest: "{{ desktop_android_sdk.path }}/cmdline-tools/{{ desktop_android_sdk.cmdline_tools_release_dir | default(desktop_android_sdk.cmdline_tools_version) }}"
     remote_src: true
-    creates: "{{ desktop_android_sdk.path }}/cmdline-tools/cmdline-tools/bin/sdkmanager"
+    creates: >-
+      {{
+        desktop_android_sdk.path ~ '/cmdline-tools/' ~
+        (desktop_android_sdk.cmdline_tools_release_dir | default(desktop_android_sdk.cmdline_tools_version)) ~
+        '/cmdline-tools/bin/sdkmanager'
+      }}
 
 - name: Link Android SDK latest cmdline-tools directory
   ansible.builtin.file:
-    src: "{{ desktop_android_sdk.path }}/cmdline-tools/cmdline-tools"
+    src: >-
+      {{
+        desktop_android_sdk.path ~ '/cmdline-tools/' ~
+        (desktop_android_sdk.cmdline_tools_release_dir | default(desktop_android_sdk.cmdline_tools_version)) ~
+        '/cmdline-tools'
+      }}
     dest: "{{ desktop_android_sdk.path }}/cmdline-tools/latest"
     state: link
     force: true

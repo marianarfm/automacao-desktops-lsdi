@@ -273,8 +273,11 @@ desktop_deb_apps:
 desktop_android_sdk:
   enabled: true
   path: /opt/android-sdk
+  cmdline_tools_version: "14742923"
   cmdline_tools_url: https://dl.google.com/android/repository/commandlinetools-linux-14742923_latest.zip
-  cmdline_tools_filename: commandlinetools-linux-14742923_latest.zip
+  cmdline_tools_filename: "commandlinetools-linux-{{ desktop_android_sdk.cmdline_tools_version }}_latest.zip"
+  cmdline_tools_release_dir: "{{ desktop_android_sdk.cmdline_tools_version }}"
+  cmdline_tools_checksum: ""
   prerequisite_packages:
     - unzip
   accept_licenses: true

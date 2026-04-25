@@ -32,3 +32,7 @@ desktop_android_studio:
   linux_checksum: ""
 desktop_android_sdk:
   enabled: false
+  cmdline_tools_version: ""
+  cmdline_tools_filename: ""
+  cmdline_tools_checksum: ""
+  cmdline_tools_release_dir: ""
