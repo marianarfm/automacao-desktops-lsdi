@@ -23,5 +23,12 @@ desktop_binary_apps: []
 desktop_shell_apps: []
 desktop_python_venv_apps: []
 desktop_archive_min_free_mb_default: 2048
+desktop_android_studio:
+  enabled: false
+  license_accepted: false
+  version: ""
+  build: ""
+  linux_archive_file: ""
+  linux_checksum: ""
 desktop_android_sdk:
   enabled: false

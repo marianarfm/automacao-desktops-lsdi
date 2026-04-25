@@ -107,19 +107,33 @@ desktop_python_venv_apps:
     launcher_name: jupyter-notebook
     entrypoint: jupyter-notebook
 
+# Android Studio requer aceite explícito dos termos do SDK do fornecedor
+desktop_android_studio:
+  enabled: true
+  license_accepted: true
+  version: 2025.3.4
+  build: 2025.3.4.6
+  linux_archive_file: android-studio-panda4-linux.tar.gz
+  linux_checksum: sha256:32a7ff09acaa38b48d61c8882bee7e213022a8ba0d1f16c0073380facb509fd3
+
 # Exemplos de aplicações gráficas instaladas a partir de arquivos compactados
 # Elas continuam atualizáveis via Ansible, mas apenas quando a versão ou a URL for alterada aqui
 desktop_archive_apps:
   - name: android-studio
-    local_src: "{{ playbook_dir | dirname }}/artifacts/android-studio/android-studio-panda3-patch1-linux.tar.gz"
-    local_checksum: 153009f6b64fc0b80803fb8f2a5e1df61681c4b2f83b667e1fcb18e91a9a78e0
-    archive_file: android-studio-panda3-patch1-linux.tar.gz
+    url: "https://edgedl.me.gvt1.com/android/studio/ide-zips/{{ desktop_android_studio.build }}/{{ desktop_android_studio.linux_archive_file }}"
+    checksum: "{{ desktop_android_studio.linux_checksum }}"
+    archive_file: "{{ desktop_android_studio.linux_archive_file }}"
     install_root: /opt/android-studio
+    release_dir_name: "android-studio-{{ desktop_android_studio.version }}"
     extracted_dir_name: android-studio
     binary_relpath: bin/studio.sh
     command_name: android-studio
     min_free_mb: 8192
-    enabled: false
+    enabled: "{{ desktop_android_studio.enabled | bool }}"
+    requires_explicit_license_acceptance: true
+    license_accepted: "{{ desktop_android_studio.license_accepted | bool }}"
+    unarchive_extra_opts:
+      - --strip-components=1
     desktop:
       name: Android Studio
       icon_relpath: bin/studio.svg

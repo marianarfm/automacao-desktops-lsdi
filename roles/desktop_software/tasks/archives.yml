@@ -50,9 +50,23 @@
 
 - name: Ensure archive application base directories exist
   ansible.builtin.file:
-    path: "{{ item.install_root }}/releases"
+    path: "{{ item.install_root }}/releases/{{ item.release_dir_name | default('') }}"
     state: directory
     mode: "0755"
+  loop: "{{ desktop_archive_apps }}"
+  loop_control:
+    label: "{{ item.name }}"
+  when:
+    - item.enabled | default(true) | bool
+    - desktop_selected_archive_apps | default([], true) | length == 0 or item.name in (desktop_selected_archive_apps | default([], true))
+
+- name: Validate explicit license acknowledgements for archive applications
+  ansible.builtin.assert:
+    that:
+      - not (item.requires_explicit_license_acceptance | default(false) | bool) or (item.license_accepted | default(false) | bool)
+    fail_msg: >-
+      {{ item.name }} requires explicit acceptance of the vendor license terms before automated download.
+      Review the vendor terms and set the corresponding inventory acknowledgement to true before rerunning the playbook.
   loop: "{{ desktop_archive_apps }}"
   loop_control:
     label: "{{ item.name }}"
@@ -109,13 +123,14 @@
 - name: Extract archive applications
   ansible.builtin.unarchive:
     src: "{{ item.local_src | default(desktop_download_dir ~ '/' ~ (item.archive_file | default(item.url | basename))) }}"
-    dest: "{{ item.install_root }}/releases"
+    dest: "{{ item.install_root }}/releases/{{ item.release_dir_name | default('') }}"
     remote_src: "{{ false if item.local_src is defined else true }}"
+    extra_opts: "{{ item.unarchive_extra_opts | default(omit) }}"
     creates: >-
       {{
-        item.install_root ~ '/releases/' ~ item.extracted_dir_name ~ '/' ~ item.binary_relpath
+        item.install_root ~ '/releases/' ~ (item.release_dir_name | default(item.extracted_dir_name)) ~ '/' ~ item.binary_relpath
         if item.binary_relpath is defined
-        else item.install_root ~ '/releases/' ~ item.extracted_dir_name
+        else item.install_root ~ '/releases/' ~ (item.release_dir_name | default(item.extracted_dir_name))
       }}
   loop: "{{ desktop_archive_apps }}"
   loop_control:
@@ -126,7 +141,7 @@
 
 - name: Point current symlink at selected release
   ansible.builtin.file:
-    src: "{{ item.install_root }}/releases/{{ item.extracted_dir_name }}"
+    src: "{{ item.install_root }}/releases/{{ item.release_dir_name | default(item.extracted_dir_name) }}"
     dest: "{{ item.install_root }}/current"
     state: link
     force: true
