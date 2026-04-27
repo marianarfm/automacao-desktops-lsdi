@@ -125,6 +125,12 @@ desktop_postman:
   enabled: true
   release_dir_name: postman-latest
 
+desktop_anaconda:
+  enabled: true
+  version: 2025.06-1
+  installer_filename: "Anaconda3-{{ desktop_anaconda.version }}-Linux-x86_64.sh"
+  release_dir_name: "anaconda3-{{ desktop_anaconda.version }}"
+
 # Exemplos de aplicações gráficas instaladas a partir de arquivos compactados
 # Elas continuam atualizáveis via Ansible, mas apenas quando a versão ou a URL for alterada aqui
 desktop_archive_apps:
@@ -254,16 +260,18 @@ desktop_archive_apps:
 # Instaladores via shell, como o Anaconda
 desktop_shell_apps:
   - name: anaconda
-    url: https://repo.anaconda.com/archive/Anaconda3-2025.06-1-Linux-x86_64.sh
-    installer_filename: Anaconda3-2025.06-1-Linux-x86_64.sh
+    url: "https://repo.anaconda.com/archive/{{ desktop_anaconda.installer_filename }}"
+    installer_filename: "{{ desktop_anaconda.installer_filename }}"
     install_root: /opt/anaconda3
-    creates: /opt/anaconda3/bin/conda
+    release_dir_name: "{{ desktop_anaconda.release_dir_name }}"
+    creates_relpath: bin/conda
     command_argv:
       - /bin/bash
-      - /var/cache/desktop-software/Anaconda3-2025.06-1-Linux-x86_64.sh
+      - "/var/cache/desktop-software/{{ desktop_anaconda.installer_filename }}"
       - -b
       - -p
-      - /opt/anaconda3
+      - "/opt/anaconda3/releases/{{ desktop_anaconda.release_dir_name }}"
+    enabled: "{{ desktop_anaconda.enabled | bool }}"
     symlinks:
       - source_command: conda
         command_name: conda

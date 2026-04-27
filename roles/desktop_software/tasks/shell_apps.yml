@@ -18,26 +18,110 @@
 
 - name: Ensure shell application parent directories exist
   ansible.builtin.file:
-    path: "{{ item.install_root | dirname }}"
+    path: "{{ item }}"
     state: directory
     mode: "0755"
+  loop: >-
+    {{
+      (
+        desktop_shell_apps
+        | selectattr('enabled', 'undefined')
+        | map(attribute='install_root')
+        | map('dirname')
+        | list
+      )
+      +
+      (
+        desktop_shell_apps
+        | selectattr('enabled', 'defined')
+        | selectattr('enabled', 'truthy')
+        | map(attribute='install_root')
+        | map('dirname')
+        | list
+      )
+      +
+      (
+        desktop_shell_apps
+        | selectattr('enabled', 'undefined')
+        | selectattr('release_dir_name', 'defined')
+        | map(attribute='install_root')
+        | map('regex_replace', '$', '/releases')
+        | list
+      )
+      +
+      (
+        desktop_shell_apps
+        | selectattr('enabled', 'defined')
+        | selectattr('enabled', 'truthy')
+        | selectattr('release_dir_name', 'defined')
+        | map(attribute='install_root')
+        | map('regex_replace', '$', '/releases')
+        | list
+      )
+      | unique
+    }}
+  loop_control:
+    label: "{{ item }}"
+
+- name: Check shell application versioned release state
+  ansible.builtin.stat:
+    path: "{{ item.install_root }}/releases/{{ item.release_dir_name }}/{{ item.creates_relpath }}"
   loop: "{{ desktop_shell_apps }}"
   loop_control:
     label: "{{ item.name }}"
-  when: item.enabled | default(true) | bool
+  register: desktop_shell_release_markers
+  when:
+    - item.enabled | default(true) | bool
+    - item.release_dir_name is defined
+    - item.creates_relpath is defined
+
+- name: Remove incomplete shell application release directories
+  ansible.builtin.file:
+    path: "{{ item.item.install_root }}/releases/{{ item.item.release_dir_name }}"
+    state: absent
+  loop: "{{ desktop_shell_release_markers.results | default([]) }}"
+  loop_control:
+    label: "{{ item.item.name }}"
+  when:
+    - item.skipped is not defined or not item.skipped
+    - not (item.stat.exists | default(false))
 
 - name: Install shell-installer applications
   ansible.builtin.command:
     argv: "{{ item.command_argv }}"
-    creates: "{{ item.creates }}"
+    creates: >-
+      {{
+        item.install_root ~ '/releases/' ~ item.release_dir_name ~ '/' ~ item.creates_relpath
+        if item.release_dir_name is defined and item.creates_relpath is defined
+        else item.creates
+      }}
   loop: "{{ desktop_shell_apps }}"
   loop_control:
     label: "{{ item.name }}"
   when: item.enabled | default(true) | bool
 
+- name: Point current symlink at selected shell application release
+  ansible.builtin.file:
+    src: "{{ item.install_root }}/releases/{{ item.release_dir_name }}"
+    dest: "{{ item.install_root }}/current"
+    state: link
+    force: true
+    follow: false
+  loop: "{{ desktop_shell_apps }}"
+  loop_control:
+    label: "{{ item.name }}"
+  when:
+    - item.enabled | default(true) | bool
+    - item.release_dir_name is defined
+
 - name: Publish shell application launchers
   ansible.builtin.file:
-    src: "{{ item.0.install_root }}/bin/{{ item.1.source_command }}"
+    src: >-
+      {{
+        item.0.install_root ~ '/current/bin/' ~ item.1.source_command
+        if item.0.release_dir_name is defined
+        else item.0.install_root ~ '/bin/' ~ item.1.source_command
+      }}
     dest: "/usr/local/bin/{{ item.1.command_name }}"
     state: link
     force: true

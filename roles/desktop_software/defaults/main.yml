@@ -37,6 +37,11 @@ desktop_eclipse_ide:
 desktop_postman:
   enabled: false
   release_dir_name: postman-latest
+desktop_anaconda:
+  enabled: false
+  version: ""
+  installer_filename: ""
+  release_dir_name: ""
 desktop_android_sdk:
   enabled: false
   cmdline_tools_version: ""
