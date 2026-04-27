@@ -116,6 +116,15 @@ desktop_android_studio:
   linux_archive_file: android-studio-panda4-linux.tar.gz
   linux_checksum: sha256:32a7ff09acaa38b48d61c8882bee7e213022a8ba0d1f16c0073380facb509fd3
 
+desktop_eclipse_ide:
+  enabled: true
+  release: 2026-03-R
+  linux_archive_file: eclipse-java-2026-03-R-linux-gtk-x86_64.tar.gz
+
+desktop_postman:
+  enabled: true
+  release_dir_name: postman-latest
+
 # Exemplos de aplicações gráficas instaladas a partir de arquivos compactados
 # Elas continuam atualizáveis via Ansible, mas apenas quando a versão ou a URL for alterada aqui
 desktop_archive_apps:
@@ -155,13 +164,17 @@ desktop_archive_apps:
       startup_wm_class: jetbrains-clion
 
   - name: eclipse-ide
-    url: https://download.eclipse.org/technology/epp/downloads/release/2026-03/R/eclipse-java-2026-03-R-linux-gtk-x86_64.tar.gz
-    archive_file: eclipse-java-2026-03-R-linux-gtk-x86_64.tar.gz
+    url: "https://download.eclipse.org/technology/epp/downloads/release/{{ desktop_eclipse_ide.release | replace('-R', '/R') }}/{{ desktop_eclipse_ide.linux_archive_file }}"
+    archive_file: "{{ desktop_eclipse_ide.linux_archive_file }}"
     install_root: /opt/eclipse
+    release_dir_name: "eclipse-{{ desktop_eclipse_ide.release }}"
     extracted_dir_name: eclipse
     binary_relpath: eclipse
     command_name: eclipse
     min_free_mb: 4096
+    enabled: "{{ desktop_eclipse_ide.enabled | bool }}"
+    unarchive_extra_opts:
+      - --strip-components=1
     desktop:
       name: Eclipse IDE
       icon_relpath: icon.xpm
@@ -189,9 +202,14 @@ desktop_archive_apps:
     url: https://dl.pstmn.io/download/latest/linux64
     archive_file: postman-latest.tar.gz
     install_root: /opt/postman
+    release_dir_name: "{{ desktop_postman.release_dir_name }}"
     extracted_dir_name: Postman
     binary_relpath: Postman
     command_name: postman
+    enabled: "{{ desktop_postman.enabled | bool }}"
+    refresh_release_on_download_change: true
+    unarchive_extra_opts:
+      - --strip-components=1
     desktop:
       name: Postman
       icon_relpath: app/resources/app/assets/icon.png

@@ -30,6 +30,13 @@ desktop_android_studio:
   build: ""
   linux_archive_file: ""
   linux_checksum: ""
+desktop_eclipse_ide:
+  enabled: false
+  release: ""
+  linux_archive_file: ""
+desktop_postman:
+  enabled: false
+  release_dir_name: postman-latest
 desktop_android_sdk:
   enabled: false
   cmdline_tools_version: ""

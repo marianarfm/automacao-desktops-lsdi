@@ -115,9 +115,34 @@
   loop: "{{ desktop_archive_apps }}"
   loop_control:
     label: "{{ item.name }}"
+  register: desktop_archive_downloads
   when:
     - item.enabled | default(true) | bool
     - item.local_src is not defined
+    - desktop_selected_archive_apps | default([], true) | length == 0 or item.name in (desktop_selected_archive_apps | default([], true))
+
+- name: Refresh rolling archive release directories when downloads change
+  ansible.builtin.file:
+    path: "{{ item.item.install_root }}/releases/{{ item.item.release_dir_name | default(item.item.extracted_dir_name) }}"
+    state: absent
+  loop: "{{ desktop_archive_downloads.results | default([]) }}"
+  loop_control:
+    label: "{{ item.item.name }}"
+  when:
+    - item.skipped is not defined or not item.skipped
+    - item.changed | default(false)
+    - item.item.refresh_release_on_download_change | default(false) | bool
+
+- name: Ensure archive extraction directories exist after refresh cleanup
+  ansible.builtin.file:
+    path: "{{ item.install_root }}/releases/{{ item.release_dir_name | default('') }}"
+    state: directory
+    mode: "0755"
+  loop: "{{ desktop_archive_apps }}"
+  loop_control:
+    label: "{{ item.name }}"
+  when:
+    - item.enabled | default(true) | bool
     - desktop_selected_archive_apps | default([], true) | length == 0 or item.name in (desktop_selected_archive_apps | default([], true))
 
 - name: Extract archive applications
