@@ -131,6 +131,11 @@ desktop_anaconda:
   installer_filename: "Anaconda3-{{ desktop_anaconda.version }}-Linux-x86_64.sh"
   release_dir_name: "anaconda3-{{ desktop_anaconda.version }}"
 
+desktop_mqttx:
+  enabled: true
+  version: 1.13.0
+  deb_filename: "MQTTX_{{ desktop_mqttx.version }}_amd64.deb"
+
 # Exemplos de aplicações gráficas instaladas a partir de arquivos compactados
 # Elas continuam atualizáveis via Ansible, mas apenas quando a versão ou a URL for alterada aqui
 desktop_archive_apps:
@@ -281,8 +286,9 @@ desktop_shell_apps:
 # Instaladores .deb diretos
 desktop_deb_apps:
   - name: mqttx
-    url: https://github.com/emqx/MQTTX/releases/download/v1.13.0/MQTTX_1.13.0_amd64.deb
-    filename: MQTTX_1.13.0_amd64.deb
+    url: "https://github.com/emqx/MQTTX/releases/download/v{{ desktop_mqttx.version }}/{{ desktop_mqttx.deb_filename }}"
+    filename: "{{ desktop_mqttx.deb_filename }}"
+    enabled: "{{ desktop_mqttx.enabled | bool }}"
     command_name: mqttx
     command_path: /usr/bin/mqttx
     desktop:

@@ -42,6 +42,10 @@ desktop_anaconda:
   version: ""
   installer_filename: ""
   release_dir_name: ""
+desktop_mqttx:
+  enabled: false
+  version: ""
+  deb_filename: ""
 desktop_android_sdk:
   enabled: false
   cmdline_tools_version: ""
