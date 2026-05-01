@@ -1,5 +1,10 @@
 # Automação para Desktops do LSDi
-Esse repositório implementa uma configuração Ansible para desktops Ubuntu do Laboratório de Sistemas Distribuídos (LSDi). O objetivo é:
+
+<div align="center">
+  <img src="assets/lsdi_logo.png" alt="Logo do LSDi">
+</div>
+
+Esse repositório implementa uma configuração Ansible para desktops Ubuntu do Laboratório de Sistemas Distribuídos Inteligentes (LSDi). O objetivo é:
 
 - definir um estado desejado de software para os desktops
 - aplicar esse estado inicialmente a partir de um nó de controle
