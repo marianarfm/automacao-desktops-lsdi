@@ -60,6 +60,13 @@ desktop_apt_repositories:
     filename: mongodb-org-8.0
     enabled: "{{ ansible_facts['distribution_release'] in ['jammy', 'noble'] }}"
 
+  - name: mysql-tools
+    key_url: https://repo.mysql.com/RPM-GPG-KEY-mysql-2025
+    key_path: /etc/apt/keyrings/mysql-2025.asc
+    repo: "deb [arch=amd64 signed-by=/etc/apt/keyrings/mysql-2025.asc] http://repo.mysql.com/apt/ubuntu/ {{ ansible_facts['distribution_release'] }} mysql-tools"
+    filename: mysql-tools
+    enabled: "{{ desktop_mysql_workbench.enabled | bool and ansible_facts['distribution_release'] in ['jammy', 'noble'] }}"
+
 # Remove arquivos de fonte obsoletos que definem o mesmo repositório com keyrings diferentes
 desktop_apt_repo_cleanup_rules:
   - name: vscode
@@ -98,6 +105,13 @@ desktop_apt_packages:
   - texlive-latex-extra
   - texlive-fonts-recommended
 
+desktop_additional_apt_packages: >-
+  {{
+    ['mysql-workbench-community']
+    if (desktop_mysql_workbench.enabled | bool and ansible_facts['distribution_release'] in ['jammy', 'noble'])
+    else []
+  }}
+
 # Exemplo de aplicação Python que deve sempre existir e permanecer atualizada
 desktop_python_venv_apps:
   - name: jupyter-notebook
@@ -135,6 +149,9 @@ desktop_mqttx:
   enabled: true
   version: 1.13.0
   deb_filename: "MQTTX_{{ desktop_mqttx.version }}_amd64.deb"
+
+desktop_mysql_workbench:
+  enabled: true
 
 # Exemplos de aplicações gráficas instaladas a partir de arquivos compactados
 # Elas continuam atualizáveis via Ansible, mas apenas quando a versão ou a URL for alterada aqui
@@ -296,10 +313,6 @@ desktop_deb_apps:
       categories: Development;Network;
       icon_path: /usr/share/icons/hicolor/0x0/apps/mqttx.png
       startup_wm_class: MQTTX
-
-  - name: mysql-workbench-community
-    enabled: false
-    local_src: "{{ playbook_dir | dirname }}/artifacts/mysql-workbench/mysql-workbench-community.deb"
 
 # Ferramentas de linha de comando do Android SDK com um pequeno conjunto padrão de pacotes
 desktop_android_sdk:

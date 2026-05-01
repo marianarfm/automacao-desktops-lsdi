@@ -16,6 +16,7 @@ desktop_repo_prerequisites:
 desktop_apt_repositories: []
 desktop_apt_repo_cleanup_rules: []
 desktop_apt_packages: []
+desktop_additional_apt_packages: []
 desktop_deb_apps: []
 desktop_archive_apps: []
 desktop_selected_archive_apps: []
@@ -46,6 +47,8 @@ desktop_mqttx:
   enabled: false
   version: ""
   deb_filename: ""
+desktop_mysql_workbench:
+  enabled: false
 desktop_android_sdk:
   enabled: false
   cmdline_tools_version: ""
