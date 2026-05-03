@@ -130,6 +130,21 @@ Para aplicativos não-APT com versões explícitas, a manutenção normal é:
 3. fazer commit e push para o branch usado em `desktop_pull_repo_branch`
 4. aguardar o próximo `ansible-pull` dos hosts ou dispará-lo manualmente
 
+## Como remover aplicativos
+Para remover um aplicativo gerenciado por este repositório, a forma recomendada é manter a entrada no inventário e marcar o app como desabilitado primeiro. No próximo `ansible-pull`, o host removerá o aplicativo. Só depois dessa execução é seguro apagar a entrada do repositório
+
+Fluxo recomendado:
+1. altere o app desejado na seção `desktop_managed_apps_enabled` do inventário para `false`
+2. faça commit e push
+3. aguarde a próxima execução do `ansible-pull` nos hosts
+4. confirme que o aplicativo foi removido
+5. só então remova a entrada definitivamente do repositório, se desejar
+
+Observações:
+- todos os itens listados na seção de [software gerenciado](#software-gerenciado) devem expor um caminho de manutenção via `enabled`, mesmo quando forem pacotes APT
+- para apps não-APT, `enabled: false` agora significa remover launchers, links e diretórios instalados por este projeto
+- para os apps APT controlados em `desktop_optional_apt_apps`, `enabled: false` remove o pacote na próxima execução
+
 ### O que editar em cada app com manutenção manual
 Android Studio
 - `desktop_android_studio.version`
