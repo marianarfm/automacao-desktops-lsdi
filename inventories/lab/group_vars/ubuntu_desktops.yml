@@ -408,6 +408,9 @@ desktop_archive_apps:
     enabled: "{{ desktop_managed_apps_enabled.intellij_idea_community | bool }}"
     desktop:
       name: IntelliJ IDEA Community
+      filename: jetbrains-idea
+      remove_filenames:
+        - idea.desktop
       icon_relpath: bin/idea.svg
       categories: Development;IDE;
       startup_wm_class: jetbrains-idea
