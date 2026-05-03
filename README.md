@@ -102,11 +102,6 @@ Para testar em VMs com armazenamento limitado (instala o perfil de teste com ape
 ansible-playbook playbooks/desktop_vm_test.yml --limit ubuntu_desktops --ask-pass
 ```
 
-Para depurar aplicativos instalados por meio de arquivos compactados mais rapidamente (limita a execução a nomes de aplicativos específicos):
-```bash
-ansible-playbook playbooks/desktop.yml --limit ubuntu-vm-01 --ask-pass -e '{"desktop_selected_archive_apps":["arduino-ide","intellij-idea-community"]}'
-```
-
 ### 5. Habilitar a manutenção do modo pull
 Após a configuração base estar funcionando como desejado, inicialize o `ansible-pull`:
 
@@ -119,6 +114,28 @@ Isso instala e habilita:
 - `ansible-pull.service`
 - `ansible-pull.timer`
 - `/usr/local/sbin/ansible-pull-run`
+
+### 6. (Opcional) Disparar uma execução imediata do `ansible-pull`
+Para testar uma alteração sem esperar o próximo horário do temporizador, execute no próprio host:
+
+```bash
+sudo systemctl start ansible-pull.service
+```
+
+Ou:
+
+```bash
+sudo /usr/local/sbin/ansible-pull-run
+```
+
+Para acompanhar a execução:
+
+```bash
+systemctl status ansible-pull.service
+journalctl -u ansible-pull.service -n 100 --no-pager
+```
+
+Essa execução manual não desabilita nem altera o `ansible-pull.timer`. Depois dela, o temporizador continua funcionando normalmente
 
 ## Como atualizar aplicativos depois
 Para aplicativos mantidos por APT, normalmente não é necessário editar versões manualmente. Basta manter os repositórios configurados e os hosts se atualizam sozinhos no próximo `ansible-pull`
