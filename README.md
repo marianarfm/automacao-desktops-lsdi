@@ -76,6 +76,8 @@ Depois que `playbooks/bootstrap_pull.yml` for executado, os hosts passarão a bu
 Atualize `inventories/lab/hosts.yml` com:
 - IPs ou nomes dos desktops
 - usuário SSH de cada host
+- senha SSH de cada host em `ansible_password`, caso você não use chaves SSH
+- senha de sudo de cada host em `ansible_become_password`, caso ela seja exigida e possa variar por máquina
 
 ### 3. Revise o catálogo de software
 Se necessário, edite `inventories/lab/group_vars/ubuntu_desktops.yml`. Em especial, revise:
@@ -88,25 +90,25 @@ Se necessário, edite `inventories/lab/group_vars/ubuntu_desktops.yml`. Em espec
 ### 4. Aplique o estado inicial a partir do nó de controle
 Execute o playbook principal no grupo de desktops:
 ```bash
-ansible-playbook playbooks/desktop.yml --limit ubuntu_desktops --ask-pass
+ansible-playbook playbooks/desktop.yml --limit ubuntu_desktops
 ```
 **Comandos opcionais:**
 
 Para fazer uma simulação (nenhum pacote será modificado):
 ```bash
-ansible-playbook playbooks/desktop.yml --limit ubuntu_desktops --check --diff --ask-pass
+ansible-playbook playbooks/desktop.yml --limit ubuntu_desktops --check --diff
 ```
 
 Para testar em VMs com armazenamento limitado (instala o perfil de teste com apenas alguns pacotes):
 ```bash
-ansible-playbook playbooks/desktop_vm_test.yml --limit ubuntu_desktops --ask-pass
+ansible-playbook playbooks/desktop_vm_test.yml --limit ubuntu_desktops
 ```
 
 ### 5. Habilitar a manutenção do modo pull
 Após a configuração base estar funcionando como desejado, inicialize o `ansible-pull`:
 
 ```bash
-ansible-playbook playbooks/bootstrap_pull.yml --limit ubuntu_desktops --ask-pass
+ansible-playbook playbooks/bootstrap_pull.yml --limit ubuntu_desktops
 ```
 
 Isso instala e habilita:
