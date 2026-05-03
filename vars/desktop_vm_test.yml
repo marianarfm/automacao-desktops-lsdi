@@ -1,22 +1,48 @@
 ---
-# Perfil de teste
-desktop_apt_packages:
-  - git
-  - python3
-  - python3-pip
-  - python3-venv
-  - openjdk-17-jdk
-  - gcc
-  - g++
-  - nodejs
-  - npm
-  - code
-  - google-chrome-stable
-  - texstudio
+# Perfil enxuto para VMs com pouco armazenamento
+# Mantém apenas um conjunto pequeno de pacotes APT para validar o fluxo geral
+desktop_manage_profile_script: false
+desktop_profile_exports: []
 
-desktop_archive_apps: []
-desktop_binary_apps: []
-desktop_shell_apps: []
-desktop_python_venv_apps: []
-desktop_android_sdk:
-  enabled: false
+desktop_managed_apps_enabled:
+  git: true
+  python3: true
+  python3_pip: true
+  python3_venv: true
+  openjdk_17: true
+  gcc: true
+  gxx: true
+  nodejs: true
+  npm: true
+  dotnet_sdk_8: false
+  vscode: true
+  intellij_idea_community: false
+  pycharm_community: false
+  clion: false
+  eclipse_ide: false
+  arduino_ide: false
+  android_studio: false
+  android_sdk: false
+  postgresql: false
+  postgresql_client: false
+  pgadmin4_desktop: false
+  mysql_server: false
+  mysql_workbench_community: false
+  mongodb_org: false
+  docker_ce: false
+  docker_ce_cli: false
+  containerd_io: false
+  docker_buildx_plugin: false
+  docker_compose_plugin: false
+  mqttx: false
+  postman: false
+  google_chrome: true
+  libreoffice: false
+  krita: false
+  texstudio: true
+  texlive_latex_recommended: false
+  texlive_latex_extra: false
+  texlive_fonts_recommended: false
+  anaconda: false
+  jupyter_notebook: false
+  esper: false

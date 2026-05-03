@@ -1,4 +1,5 @@
 ---
+# Configuração geral
 desktop_cache_valid_time: 3600
 desktop_download_dir: /var/cache/desktop-software
 desktop_upgrade_all_system_packages: false
@@ -13,6 +14,7 @@ desktop_repo_prerequisites:
   - gnupg
   - software-properties-common
 
+# Catálogos e listas derivadas
 desktop_apt_repositories: []
 desktop_apt_repo_cleanup_rules: []
 desktop_apt_packages: []
@@ -20,36 +22,39 @@ desktop_managed_apps_enabled: {}
 desktop_optional_apt_apps: []
 desktop_additional_apt_packages: []
 desktop_absent_apt_packages: []
+
+# Coleções de aplicativos por tipo de instalador
 desktop_deb_apps: []
 desktop_archive_apps: []
-desktop_selected_archive_apps: []
 desktop_binary_apps: []
 desktop_shell_apps: []
 desktop_python_venv_apps: []
 desktop_archive_min_free_mb_default: 2048
+
+# Metadados específicos dos aplicativos com versionamento manual
 desktop_android_studio:
-  enabled: false
   license_accepted: false
   version: ""
   build: ""
   linux_archive_file: ""
   linux_checksum: ""
+
 desktop_eclipse_ide:
-  enabled: false
   release: ""
   linux_archive_file: ""
+
 desktop_postman:
-  enabled: false
   release_dir_name: postman-latest
+
 desktop_anaconda:
-  enabled: false
   version: ""
   installer_filename: ""
   release_dir_name: ""
+
 desktop_mqttx:
-  enabled: false
   version: ""
   deb_filename: ""
+
 desktop_android_sdk:
   enabled: false
   cmdline_tools_version: ""
