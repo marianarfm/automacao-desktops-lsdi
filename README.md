@@ -137,7 +137,7 @@ journalctl -u ansible-pull.service -n 100 --no-pager
 
 Essa execução manual não desabilita nem altera o `ansible-pull.timer`. Depois dela, o temporizador continua funcionando normalmente
 
-## Como atualizar aplicativos depois
+## Como atualizar aplicativos
 Para aplicativos mantidos por APT, normalmente não é necessário editar versões manualmente. Basta manter os repositórios configurados e os hosts se atualizam sozinhos no próximo `ansible-pull`
 
 Para aplicativos não-APT com versões explícitas, a manutenção normal é:
@@ -146,21 +146,6 @@ Para aplicativos não-APT com versões explícitas, a manutenção normal é:
 2. atualizar versão, URL, nome de arquivo, checksum ou diretório de release conforme o app
 3. fazer commit e push para o branch usado em `desktop_pull_repo_branch`
 4. aguardar o próximo `ansible-pull` dos hosts ou dispará-lo manualmente
-
-## Como remover aplicativos
-Para remover um aplicativo gerenciado por este repositório, a forma recomendada é manter a entrada no inventário e marcar o app como desabilitado primeiro. No próximo `ansible-pull`, o host removerá o aplicativo. Só depois dessa execução é seguro apagar a entrada do repositório
-
-Fluxo recomendado:
-1. altere o app desejado na seção `desktop_managed_apps_enabled` do inventário para `false`
-2. faça commit e push
-3. aguarde a próxima execução do `ansible-pull` nos hosts
-4. confirme que o aplicativo foi removido
-5. só então remova a entrada definitivamente do repositório, se desejar
-
-Observações:
-- todos os itens listados na seção de [software gerenciado](#software-gerenciado) devem expor um caminho de manutenção via `enabled`, mesmo quando forem pacotes APT
-- para apps não-APT, `enabled: false` agora significa remover launchers, links e diretórios instalados por este projeto
-- para os apps APT controlados em `desktop_optional_apt_apps`, `enabled: false` remove o pacote na próxima execução
 
 ### O que editar em cada app com manutenção manual
 Android Studio
@@ -180,23 +165,23 @@ Eclipse IDE
 - `desktop_eclipse_ide.linux_archive_file`
 
 CLion
-- `desktop_archive_apps` -> entrada `clion`:
+- `desktop_archive_apps` -> entrada `clion`:\
   `url`, `archive_file`, `extracted_dir_name`
 
 Arduino IDE
-- `desktop_archive_apps` -> entrada `arduino-ide`:
+- `desktop_archive_apps` -> entrada `arduino-ide`:\
   `url`, `archive_file`, `extracted_dir_name`
 
 IntelliJ IDEA Community
-- `desktop_archive_apps` -> entrada `intellij-idea-community`:
+- `desktop_archive_apps` -> entrada `intellij-idea-community`:\
   `url`, `archive_file`, `extracted_dir_name`
 
 PyCharm Community
-- `desktop_archive_apps` -> entrada `pycharm-community`:
+- `desktop_archive_apps` -> entrada `pycharm-community`:\
   `url`, `archive_file`, `extracted_dir_name`
 
 Esper
-- `desktop_archive_apps` -> entrada `esper`:
+- `desktop_archive_apps` -> entrada `esper`:\
   `url`, `archive_file`, `extracted_dir_name`
 
 Android SDK cmdline-tools
@@ -206,3 +191,18 @@ Android SDK cmdline-tools
 - `desktop_android_sdk.cmdline_tools_release_dir`
 - `desktop_android_sdk.cmdline_tools_checksum`
 - `desktop_android_sdk.packages`, se quiser alterar os componentes instalados
+
+## Como remover aplicativos
+Para remover um aplicativo gerenciado por este repositório, a forma recomendada é manter a entrada no inventário e marcar o app como desabilitado primeiro. No próximo `ansible-pull`, o host removerá o aplicativo. Só depois dessa execução é seguro apagar a entrada do repositório
+
+Fluxo recomendado:
+1. altere o app desejado na seção `desktop_managed_apps_enabled` do inventário para `false`
+2. faça commit e push
+3. aguarde a próxima execução do `ansible-pull` nos hosts
+4. confirme que o aplicativo foi removido
+5. só então remova a entrada definitivamente do repositório, se desejar
+
+Observações:
+- todos os itens listados na seção de [software gerenciado](#software-gerenciado) devem expor um caminho de manutenção via `enabled`, mesmo quando forem pacotes APT
+- para apps não-APT, `enabled: false` agora significa remover launchers, links e diretórios instalados por este projeto
+- para os apps APT controlados em `desktop_optional_apt_apps`, `enabled: false` remove o pacote na próxima execução
