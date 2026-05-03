@@ -5,6 +5,48 @@
     state: directory
     mode: "0755"
 
+- name: Remove launcher symlinks for disabled standalone binary applications
+  ansible.builtin.file:
+    path: "/usr/local/bin/{{ item.command_name }}"
+    state: absent
+  loop: "{{ desktop_binary_apps | default([], true) }}"
+  loop_control:
+    label: "{{ item.name }}"
+  when:
+    - not (item.enabled | default(true) | bool)
+    - item.command_name is defined
+
+- name: Remove desktop launchers for disabled standalone binary applications
+  ansible.builtin.file:
+    path: "/usr/share/applications/{{ item.desktop.filename | default(item.command_name | default(item.name)) }}.desktop"
+    state: absent
+  loop: "{{ desktop_binary_apps | default([], true) }}"
+  loop_control:
+    label: "{{ item.name }}"
+  when:
+    - not (item.enabled | default(true) | bool)
+    - item.desktop is defined
+
+- name: Remove superseded desktop launchers for disabled standalone binary applications
+  ansible.builtin.file:
+    path: "/usr/share/applications/{{ item.1 }}"
+    state: absent
+  loop: "{{ desktop_binary_apps | default([], true) | subelements('desktop.remove_filenames', skip_missing=True) }}"
+  loop_control:
+    label: "{{ item.0.name }} -> {{ item.1 }}"
+  when:
+    - not (item.0.enabled | default(true) | bool)
+    - item.0.desktop is defined
+
+- name: Remove disabled standalone binary application directories
+  ansible.builtin.file:
+    path: "{{ item.install_root }}"
+    state: absent
+  loop: "{{ desktop_binary_apps | default([], true) }}"
+  loop_control:
+    label: "{{ item.name }}"
+  when: not (item.enabled | default(true) | bool)
+
 - name: Ensure binary application directories exist
   ansible.builtin.file:
     path: "{{ item.install_root }}"

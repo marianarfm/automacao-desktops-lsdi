@@ -1,10 +1,32 @@
 ---
+- name: Remove Android SDK tool launchers
+  ansible.builtin.file:
+    path: "/usr/local/bin/{{ item.command_name }}"
+    state: absent
+  loop: "{{ desktop_android_sdk.symlinks | default([]) }}"
+  loop_control:
+    label: "{{ item.command_name }}"
+  when: not (desktop_android_sdk.enabled | default(false) | bool)
+
+- name: Remove Android SDK profile exports
+  ansible.builtin.file:
+    path: /etc/profile.d/android-sdk.sh
+    state: absent
+  when: not (desktop_android_sdk.enabled | default(false) | bool)
+
+- name: Remove Android SDK installation root
+  ansible.builtin.file:
+    path: "{{ desktop_android_sdk.path }}"
+    state: absent
+  when: not (desktop_android_sdk.enabled | default(false) | bool)
+
 - name: Install Android SDK prerequisites
   ansible.builtin.apt:
     name: "{{ desktop_android_sdk.prerequisite_packages | default(['unzip']) }}"
     state: present
     update_cache: true
     cache_valid_time: "{{ desktop_cache_valid_time }}"
+  when: desktop_android_sdk.enabled | default(false) | bool
 
 - name: Ensure Android SDK directories exist
   ansible.builtin.file:
@@ -16,6 +38,7 @@
     - "{{ desktop_android_sdk.path }}/cmdline-tools"
     - "{{ desktop_android_sdk.path }}/licenses"
     - "{{ desktop_download_dir }}"
+  when: desktop_android_sdk.enabled | default(false) | bool
 
 - name: Download Android SDK command-line tools
   ansible.builtin.get_url:
@@ -23,12 +46,14 @@
     dest: "{{ desktop_download_dir }}/{{ desktop_android_sdk.cmdline_tools_filename | default(desktop_android_sdk.cmdline_tools_url | basename) }}"
     checksum: "{{ desktop_android_sdk.cmdline_tools_checksum | default(omit) }}"
     mode: "0644"
+  when: desktop_android_sdk.enabled | default(false) | bool
 
 - name: Ensure Android SDK cmdline-tools release directory exists
   ansible.builtin.file:
     path: "{{ desktop_android_sdk.path }}/cmdline-tools/{{ desktop_android_sdk.cmdline_tools_release_dir | default(desktop_android_sdk.cmdline_tools_version) }}"
     state: directory
     mode: "0755"
+  when: desktop_android_sdk.enabled | default(false) | bool
 
 - name: Extract Android SDK command-line tools
   ansible.builtin.unarchive:
@@ -41,6 +66,7 @@
         (desktop_android_sdk.cmdline_tools_release_dir | default(desktop_android_sdk.cmdline_tools_version)) ~
         '/cmdline-tools/bin/sdkmanager'
       }}
+  when: desktop_android_sdk.enabled | default(false) | bool
 
 - name: Link Android SDK latest cmdline-tools directory
   ansible.builtin.file:
@@ -53,6 +79,7 @@
     dest: "{{ desktop_android_sdk.path }}/cmdline-tools/latest"
     state: link
     force: true
+  when: desktop_android_sdk.enabled | default(false) | bool
 
 - name: Accept Android SDK licenses
   ansible.builtin.shell: |
@@ -68,6 +95,7 @@
   register: desktop_android_sdk_licenses
   failed_when: desktop_android_sdk_licenses.rc != 0
   when: desktop_android_sdk.accept_licenses | default(true) | bool
+    and desktop_android_sdk.enabled | default(false) | bool
 
 - name: Install Android SDK packages
   ansible.builtin.shell: |
@@ -83,7 +111,9 @@
   register: desktop_android_sdk_packages
   changed_when: false
   failed_when: desktop_android_sdk_packages.rc != 0
-  when: desktop_android_sdk.packages | default([]) | length > 0
+  when:
+    - desktop_android_sdk.enabled | default(false) | bool
+    - desktop_android_sdk.packages | default([]) | length > 0
 
 - name: Publish Android SDK tool launchers
   ansible.builtin.file:
@@ -95,9 +125,11 @@
   loop: "{{ desktop_android_sdk.symlinks | default([]) }}"
   loop_control:
     label: "{{ item.command_name }}"
+  when: desktop_android_sdk.enabled | default(false) | bool
 
 - name: Install Android SDK profile exports
   ansible.builtin.template:
     src: android-sdk.sh.j2
     dest: /etc/profile.d/android-sdk.sh
     mode: "0644"
+  when: desktop_android_sdk.enabled | default(false) | bool

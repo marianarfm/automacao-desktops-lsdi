@@ -1,13 +1,10 @@
 ---
-# Comportamento principal
+# Configuração geral
 desktop_cache_valid_time: 3600
 desktop_download_dir: /var/cache/desktop-software
 desktop_upgrade_all_system_packages: true
 desktop_apt_package_state: latest
 desktop_manage_profile_script: true
-desktop_profile_exports:
-  - name: ESPER_HOME
-    value: /opt/esper/current
 desktop_enabled_services: []
 desktop_repo_prerequisites:
   - apt-transport-https
@@ -15,6 +12,11 @@ desktop_repo_prerequisites:
   - curl
   - gnupg
   - software-properties-common
+
+# Variáveis exportadas para sessões de usuário
+desktop_profile_exports:
+  - name: ESPER_HOME
+    value: /opt/esper/current
 
 # Configuração do modo pull
 desktop_pull_repo_url: https://github.com/marianarfm/automacao-desktops-lsdi.git
@@ -26,7 +28,110 @@ desktop_pull_randomized_delay: 20m
 desktop_pull_run_immediately: false
 desktop_pull_extra_args: ""
 
-# Repositórios oficiais e suportados para manter os pacotes atualizados via APT
+# Interruptores centrais de instalação, manutenção e remoção
+# Futuras manutenções do catálogo devem começar por esta seção
+desktop_managed_apps_enabled:
+  # Linguagens, compiladores e toolchains
+  git: true
+  python3: true
+  python3_pip: true
+  python3_venv: true
+  openjdk_17: true
+  gcc: true
+  gxx: true
+  nodejs: true
+  npm: true
+  dotnet_sdk_8: true
+
+  # IDEs e ferramentas de desenvolvimento
+  vscode: true
+  intellij_idea_community: true
+  pycharm_community: true
+  clion: true
+  eclipse_ide: true
+  arduino_ide: true
+  android_studio: true
+  android_sdk: true
+
+  # Bancos, redes e integrações
+  postgresql: true
+  postgresql_client: true
+  pgadmin4_desktop: true
+  mysql_server: true
+  mysql_workbench_community: true
+  mongodb_org: true
+  docker_ce: true
+  docker_ce_cli: true
+  containerd_io: true
+  docker_buildx_plugin: true
+  docker_compose_plugin: true
+  mqttx: true
+  postman: true
+
+  # Aplicativos de produtividade e uso geral
+  google_chrome: true
+  libreoffice: true
+  krita: true
+  texstudio: true
+  texlive_latex_recommended: true
+  texlive_latex_extra: true
+  texlive_fonts_recommended: true
+
+  # Ferramentas científicas e utilitários adicionais
+  anaconda: true
+  jupyter_notebook: true
+  esper: true
+
+# Metadados específicos dos aplicativos que exigem versionamento manual
+
+# Android Studio requer aceite explícito da licença do fornecedor
+desktop_android_studio:
+  license_accepted: true
+  version: 2025.3.4
+  build: 2025.3.4.6
+  linux_archive_file: android-studio-panda4-linux.tar.gz
+  linux_checksum: sha256:32a7ff09acaa38b48d61c8882bee7e213022a8ba0d1f16c0073380facb509fd3
+
+desktop_android_sdk:
+  enabled: "{{ desktop_managed_apps_enabled.android_sdk | bool }}"
+  path: /opt/android-sdk
+  cmdline_tools_version: "14742923"
+  cmdline_tools_url: https://dl.google.com/android/repository/commandlinetools-linux-14742923_latest.zip
+  cmdline_tools_filename: "commandlinetools-linux-{{ desktop_android_sdk.cmdline_tools_version }}_latest.zip"
+  cmdline_tools_release_dir: "{{ desktop_android_sdk.cmdline_tools_version }}"
+  cmdline_tools_checksum: ""
+  prerequisite_packages:
+    - unzip
+  accept_licenses: true
+  packages:
+    - platform-tools
+    - build-tools;35.0.0
+    - platforms;android-35
+  symlinks:
+    - source_relpath: cmdline-tools/latest/bin/sdkmanager
+      command_name: sdkmanager
+    - source_relpath: cmdline-tools/latest/bin/avdmanager
+      command_name: avdmanager
+    - source_relpath: platform-tools/adb
+      command_name: adb
+
+desktop_eclipse_ide:
+  release: 2026-03-R
+  linux_archive_file: eclipse-java-2026-03-R-linux-gtk-x86_64.tar.gz
+
+desktop_postman:
+  release_dir_name: postman-latest
+
+desktop_anaconda:
+  version: 2025.06-1
+  installer_filename: "Anaconda3-{{ desktop_anaconda.version }}-Linux-x86_64.sh"
+  release_dir_name: "anaconda3-{{ desktop_anaconda.version }}"
+
+desktop_mqttx:
+  version: 1.13.0
+  deb_filename: "MQTTX_{{ desktop_mqttx.version }}_amd64.deb"
+
+# Repositórios oficiais de terceiros usados pelo APT
 desktop_apt_repositories:
   - name: vscode
     key_url: https://packages.microsoft.com/keys/microsoft.asc
@@ -65,96 +170,144 @@ desktop_apt_repositories:
     key_path: /etc/apt/keyrings/mysql-2025.asc
     repo: "deb [arch=amd64 signed-by=/etc/apt/keyrings/mysql-2025.asc] http://repo.mysql.com/apt/ubuntu/ {{ ansible_facts['distribution_release'] }} mysql-tools"
     filename: mysql-tools
-    enabled: "{{ desktop_mysql_workbench.enabled | bool and ansible_facts['distribution_release'] in ['jammy', 'noble'] }}"
+    enabled: "{{ desktop_managed_apps_enabled.mysql_workbench_community | bool and ansible_facts['distribution_release'] in ['jammy', 'noble'] }}"
 
-# Remove arquivos de fonte obsoletos que definem o mesmo repositório com keyrings diferentes
+# Remove definições antigas ou conflitantes dos mesmos repositórios
 desktop_apt_repo_cleanup_rules:
   - name: vscode
     match: https://packages.microsoft.com/repos/code
     managed_filenames:
       - vscode.list
 
-# Pacotes gerenciados pelo APT
-desktop_apt_packages:
-  - git
-  - python3
-  - python3-pip
-  - python3-venv
-  - openjdk-17-jdk
-  - gcc
-  - g++
-  - nodejs
-  - npm
-  - dotnet-sdk-8.0
-  - code
-  - docker-ce
-  - docker-ce-cli
-  - containerd.io
-  - docker-buildx-plugin
-  - docker-compose-plugin
-  - google-chrome-stable
-  - postgresql
-  - postgresql-client
-  - pgadmin4-desktop
-  - mysql-server
-  - mongodb-org
-  - libreoffice
-  - krita
-  - texstudio
-  - texlive-latex-recommended
-  - texlive-latex-extra
-  - texlive-fonts-recommended
+# Lista reservada para pacotes internos
+desktop_apt_packages: []
 
+# Catálogo de pacotes APT que seguem o modelo de enabled/disabled
+desktop_optional_apt_apps:
+  # Ferramentas básicas
+  - package_name: git
+    enabled: "{{ desktop_managed_apps_enabled.git | bool }}"
+  - package_name: python3
+    enabled: "{{ desktop_managed_apps_enabled.python3 | bool }}"
+  - package_name: python3-pip
+    enabled: "{{ desktop_managed_apps_enabled.python3_pip | bool }}"
+  - package_name: python3-venv
+    enabled: "{{ desktop_managed_apps_enabled.python3_venv | bool }}"
+  - package_name: openjdk-17-jdk
+    enabled: "{{ desktop_managed_apps_enabled.openjdk_17 | bool }}"
+  - package_name: gcc
+    enabled: "{{ desktop_managed_apps_enabled.gcc | bool }}"
+  - package_name: g++
+    enabled: "{{ desktop_managed_apps_enabled.gxx | bool }}"
+  - package_name: nodejs
+    enabled: "{{ desktop_managed_apps_enabled.nodejs | bool }}"
+  - package_name: npm
+    enabled: "{{ desktop_managed_apps_enabled.npm | bool }}"
+  - package_name: dotnet-sdk-8.0
+    enabled: "{{ desktop_managed_apps_enabled.dotnet_sdk_8 | bool }}"
+
+  # IDEs e utilitários de desenvolvimento via APT
+  - package_name: code
+    enabled: "{{ desktop_managed_apps_enabled.vscode | bool }}"
+  - package_name: docker-ce
+    enabled: "{{ desktop_managed_apps_enabled.docker_ce | bool }}"
+  - package_name: docker-ce-cli
+    enabled: "{{ desktop_managed_apps_enabled.docker_ce_cli | bool }}"
+  - package_name: containerd.io
+    enabled: "{{ desktop_managed_apps_enabled.containerd_io | bool }}"
+  - package_name: docker-buildx-plugin
+    enabled: "{{ desktop_managed_apps_enabled.docker_buildx_plugin | bool }}"
+  - package_name: docker-compose-plugin
+    enabled: "{{ desktop_managed_apps_enabled.docker_compose_plugin | bool }}"
+
+  # Navegação e produtividade
+  - package_name: google-chrome-stable
+    enabled: "{{ desktop_managed_apps_enabled.google_chrome | bool }}"
+  - package_name: libreoffice
+    enabled: "{{ desktop_managed_apps_enabled.libreoffice | bool }}"
+  - package_name: krita
+    enabled: "{{ desktop_managed_apps_enabled.krita | bool }}"
+  - package_name: texstudio
+    enabled: "{{ desktop_managed_apps_enabled.texstudio | bool }}"
+  - package_name: texlive-latex-recommended
+    enabled: "{{ desktop_managed_apps_enabled.texlive_latex_recommended | bool }}"
+  - package_name: texlive-latex-extra
+    enabled: "{{ desktop_managed_apps_enabled.texlive_latex_extra | bool }}"
+  - package_name: texlive-fonts-recommended
+    enabled: "{{ desktop_managed_apps_enabled.texlive_fonts_recommended | bool }}"
+
+  # Bancos de dados e ferramentas associadas
+  - package_name: postgresql
+    enabled: "{{ desktop_managed_apps_enabled.postgresql | bool }}"
+  - package_name: postgresql-client
+    enabled: "{{ desktop_managed_apps_enabled.postgresql_client | bool }}"
+  - package_name: pgadmin4-desktop
+    enabled: "{{ desktop_managed_apps_enabled.pgadmin4_desktop | bool }}"
+    supported_releases:
+      - jammy
+      - noble
+  - package_name: mysql-server
+    enabled: "{{ desktop_managed_apps_enabled.mysql_server | bool }}"
+  - package_name: mysql-workbench-community
+    enabled: "{{ desktop_managed_apps_enabled.mysql_workbench_community | bool }}"
+    skip_if_unavailable: true # Nem todos os lançamentos do MySQL Workbench estão disponíveis para todas as versões do Ubuntu, então esta flag evita falhas caso o pacote não exista em algum lançamento específico
+    supported_releases:
+      - jammy
+      - noble
+  - package_name: mongodb-org
+    enabled: "{{ desktop_managed_apps_enabled.mongodb_org | bool }}"
+    supported_releases:
+      - jammy
+      - noble
+
+# Derivados automáticos para instalar ou remover pacotes APT
 desktop_additional_apt_packages: >-
   {{
-    ['mysql-workbench-community']
-    if (desktop_mysql_workbench.enabled | bool and ansible_facts['distribution_release'] in ['jammy', 'noble'])
-    else []
+    desktop_optional_apt_apps
+    | selectattr('enabled', 'truthy')
+    | rejectattr('supported_releases', 'defined')
+    | map(attribute='package_name')
+    | list
+    +
+    (
+      desktop_optional_apt_apps
+      | selectattr('enabled', 'truthy')
+      | selectattr('supported_releases', 'defined')
+      | selectattr('supported_releases', 'contains', ansible_facts['distribution_release'])
+      | map(attribute='package_name')
+      | list
+    )
   }}
 
-# Exemplo de aplicação Python que deve sempre existir e permanecer atualizada
+desktop_absent_apt_packages: >-
+  {{
+    desktop_optional_apt_apps
+    | rejectattr('enabled', 'truthy')
+    | rejectattr('supported_releases', 'defined')
+    | map(attribute='package_name')
+    | list
+    +
+    (
+      desktop_optional_apt_apps
+      | rejectattr('enabled', 'truthy')
+      | selectattr('supported_releases', 'defined')
+      | selectattr('supported_releases', 'contains', ansible_facts['distribution_release'])
+      | map(attribute='package_name')
+      | list
+    )
+  }}
+
+# Aplicativos Python isolados em ambientes virtuais próprios
 desktop_python_venv_apps:
   - name: jupyter-notebook
+    enabled: "{{ desktop_managed_apps_enabled.jupyter_notebook | bool }}"
     path: /opt/jupyter-notebook
     packages:
       - notebook
     launcher_name: jupyter-notebook
     entrypoint: jupyter-notebook
 
-# Android Studio requer aceite explícito dos termos do SDK do fornecedor
-desktop_android_studio:
-  enabled: true
-  license_accepted: true
-  version: 2025.3.4
-  build: 2025.3.4.6
-  linux_archive_file: android-studio-panda4-linux.tar.gz
-  linux_checksum: sha256:32a7ff09acaa38b48d61c8882bee7e213022a8ba0d1f16c0073380facb509fd3
-
-desktop_eclipse_ide:
-  enabled: true
-  release: 2026-03-R
-  linux_archive_file: eclipse-java-2026-03-R-linux-gtk-x86_64.tar.gz
-
-desktop_postman:
-  enabled: true
-  release_dir_name: postman-latest
-
-desktop_anaconda:
-  enabled: true
-  version: 2025.06-1
-  installer_filename: "Anaconda3-{{ desktop_anaconda.version }}-Linux-x86_64.sh"
-  release_dir_name: "anaconda3-{{ desktop_anaconda.version }}"
-
-desktop_mqttx:
-  enabled: true
-  version: 1.13.0
-  deb_filename: "MQTTX_{{ desktop_mqttx.version }}_amd64.deb"
-
-desktop_mysql_workbench:
-  enabled: true
-
-# Exemplos de aplicações gráficas instaladas a partir de arquivos compactados
-# Elas continuam atualizáveis via Ansible, mas apenas quando a versão ou a URL for alterada aqui
+# Aplicativos distribuídos como arquivos compactados
 desktop_archive_apps:
   - name: android-studio
     url: "https://edgedl.me.gvt1.com/android/studio/ide-zips/{{ desktop_android_studio.build }}/{{ desktop_android_studio.linux_archive_file }}"
@@ -166,7 +319,7 @@ desktop_archive_apps:
     binary_relpath: bin/studio.sh
     command_name: android-studio
     min_free_mb: 8192
-    enabled: "{{ desktop_android_studio.enabled | bool }}"
+    enabled: "{{ desktop_managed_apps_enabled.android_studio | bool }}"
     requires_explicit_license_acceptance: true
     license_accepted: "{{ desktop_android_studio.license_accepted | bool }}"
     unarchive_extra_opts:
@@ -185,6 +338,7 @@ desktop_archive_apps:
     binary_relpath: bin/clion.sh
     command_name: clion
     min_free_mb: 8192
+    enabled: "{{ desktop_managed_apps_enabled.clion | bool }}"
     desktop:
       name: CLion
       icon_relpath: bin/clion.svg
@@ -200,7 +354,7 @@ desktop_archive_apps:
     binary_relpath: eclipse
     command_name: eclipse
     min_free_mb: 4096
-    enabled: "{{ desktop_eclipse_ide.enabled | bool }}"
+    enabled: "{{ desktop_managed_apps_enabled.eclipse_ide | bool }}"
     unarchive_extra_opts:
       - --strip-components=1
     desktop:
@@ -216,6 +370,7 @@ desktop_archive_apps:
     binary_relpath: arduino-ide
     command_name: arduino-ide
     min_free_mb: 2048
+    enabled: "{{ desktop_managed_apps_enabled.arduino_ide | bool }}"
     post_extract_permissions:
       - path: arduino-ide
         mode: "0755"
@@ -234,7 +389,7 @@ desktop_archive_apps:
     extracted_dir_name: Postman
     binary_relpath: Postman
     command_name: postman
-    enabled: "{{ desktop_postman.enabled | bool }}"
+    enabled: "{{ desktop_managed_apps_enabled.postman | bool }}"
     refresh_release_on_download_change: true
     unarchive_extra_opts:
       - --strip-components=1
@@ -250,11 +405,12 @@ desktop_archive_apps:
     extracted_dir_name: idea-IC-251.25410.109
     binary_relpath: bin/idea.sh
     command_name: idea
+    enabled: "{{ desktop_managed_apps_enabled.intellij_idea_community | bool }}"
     desktop:
       name: IntelliJ IDEA Community
-      filename: jetbrains-idea
-      remove_filenames:
-        - idea.desktop
+      #filename: jetbrains-idea
+      #remove_filenames:
+      #  - idea.desktop
       icon_relpath: bin/idea.svg
       categories: Development;IDE;
       startup_wm_class: jetbrains-idea
@@ -266,6 +422,7 @@ desktop_archive_apps:
     extracted_dir_name: pycharm-community-2025.1
     binary_relpath: bin/pycharm.sh
     command_name: pycharm
+    enabled: "{{ desktop_managed_apps_enabled.pycharm_community | bool }}"
     desktop:
       name: PyCharm Community
       icon_relpath: bin/pycharm.svg
@@ -278,8 +435,9 @@ desktop_archive_apps:
     install_root: /opt/esper
     extracted_dir_name: esper-9.0.0
     min_free_mb: 1024
+    enabled: "{{ desktop_managed_apps_enabled.esper | bool }}"
 
-# Instaladores via shell, como o Anaconda
+# Aplicativos distribuídos por instaladores shell
 desktop_shell_apps:
   - name: anaconda
     url: "https://repo.anaconda.com/archive/{{ desktop_anaconda.installer_filename }}"
@@ -293,19 +451,19 @@ desktop_shell_apps:
       - -b
       - -p
       - "/opt/anaconda3/releases/{{ desktop_anaconda.release_dir_name }}"
-    enabled: "{{ desktop_anaconda.enabled | bool }}"
+    enabled: "{{ desktop_managed_apps_enabled.anaconda | bool }}"
     symlinks:
       - source_command: conda
         command_name: conda
       - source_command: anaconda-navigator
         command_name: anaconda-navigator
 
-# Instaladores .deb diretos
+# Aplicativos distribuídos como pacotes .deb avulsos
 desktop_deb_apps:
   - name: mqttx
     url: "https://github.com/emqx/MQTTX/releases/download/v{{ desktop_mqttx.version }}/{{ desktop_mqttx.deb_filename }}"
     filename: "{{ desktop_mqttx.deb_filename }}"
-    enabled: "{{ desktop_mqttx.enabled | bool }}"
+    enabled: "{{ desktop_managed_apps_enabled.mqttx | bool }}"
     command_name: mqttx
     command_path: /usr/bin/mqttx
     desktop:
@@ -313,27 +471,3 @@ desktop_deb_apps:
       categories: Development;Network;
       icon_path: /usr/share/icons/hicolor/0x0/apps/mqttx.png
       startup_wm_class: MQTTX
-
-# Ferramentas de linha de comando do Android SDK com um pequeno conjunto padrão de pacotes
-desktop_android_sdk:
-  enabled: true
-  path: /opt/android-sdk
-  cmdline_tools_version: "14742923"
-  cmdline_tools_url: https://dl.google.com/android/repository/commandlinetools-linux-14742923_latest.zip
-  cmdline_tools_filename: "commandlinetools-linux-{{ desktop_android_sdk.cmdline_tools_version }}_latest.zip"
-  cmdline_tools_release_dir: "{{ desktop_android_sdk.cmdline_tools_version }}"
-  cmdline_tools_checksum: ""
-  prerequisite_packages:
-    - unzip
-  accept_licenses: true
-  packages:
-    - platform-tools
-    - build-tools;35.0.0
-    - platforms;android-35
-  symlinks:
-    - source_relpath: cmdline-tools/latest/bin/sdkmanager
-      command_name: sdkmanager
-    - source_relpath: cmdline-tools/latest/bin/avdmanager
-      command_name: avdmanager
-    - source_relpath: platform-tools/adb
-      command_name: adb

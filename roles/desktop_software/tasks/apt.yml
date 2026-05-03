@@ -16,14 +16,102 @@
     - ansible_check_mode
     - (desktop_repo_keys.changed | default(false)) or (desktop_repo_defs.changed | default(false))
 
+- name: Refresh APT cache before probing optional package availability
+  ansible.builtin.apt:
+    update_cache: true
+    cache_valid_time: "{{ desktop_cache_valid_time }}"
+  when:
+    - >
+      (
+        desktop_optional_apt_apps
+        | selectattr('enabled', 'truthy')
+        | selectattr('skip_if_unavailable', 'defined')
+        | selectattr('skip_if_unavailable', 'truthy')
+        | list
+        | length
+      ) > 0
+    - not (
+        ansible_check_mode and
+        (
+          (desktop_repo_keys.changed | default(false)) or
+          (desktop_repo_defs.changed | default(false))
+        )
+      )
+
+- name: Probe availability of optional APT packages that may be skipped
+  ansible.builtin.command:
+    argv:
+      - apt-cache
+      - show
+      - "{{ item.package_name }}"
+  loop: >-
+    {{
+      desktop_optional_apt_apps
+      | selectattr('enabled', 'truthy')
+      | selectattr('skip_if_unavailable', 'defined')
+      | selectattr('skip_if_unavailable', 'truthy')
+      | rejectattr('supported_releases', 'defined')
+      | list
+      +
+      (
+        desktop_optional_apt_apps
+        | selectattr('enabled', 'truthy')
+        | selectattr('skip_if_unavailable', 'defined')
+        | selectattr('skip_if_unavailable', 'truthy')
+        | selectattr('supported_releases', 'defined')
+        | selectattr('supported_releases', 'contains', ansible_facts['distribution_release'])
+        | list
+      )
+    }}
+  loop_control:
+    label: "{{ item.package_name }}"
+  register: desktop_optional_apt_package_probes
+  changed_when: false
+  failed_when: false
+  when:
+    - not (
+        ansible_check_mode and
+        (
+          (desktop_repo_keys.changed | default(false)) or
+          (desktop_repo_defs.changed | default(false))
+        )
+      )
+
+- name: Collect optional APT packages unavailable from current repositories
+  ansible.builtin.set_fact:
+    desktop_unavailable_optional_apt_packages: >-
+      {{
+        desktop_optional_apt_package_probes.results
+        | default([])
+        | rejectattr('stdout', 'search', '(^|\\n)Package:\\s')
+        | map(attribute='item.package_name')
+        | list
+      }}
+
+- name: Warn when optional APT packages are enabled but unavailable upstream
+  ansible.builtin.debug:
+    msg: >-
+      Skipping these enabled APT packages because the configured repositories do not
+      currently provide them for {{ ansible_facts['distribution_release'] }}:
+      {{ desktop_unavailable_optional_apt_packages | join(', ') }}.
+  when: (desktop_unavailable_optional_apt_packages | default([])) | length > 0
+
+- name: Build effective optional APT install list
+  ansible.builtin.set_fact:
+    desktop_effective_additional_apt_packages: >-
+      {{
+        (desktop_additional_apt_packages | default([], true))
+        | difference(desktop_unavailable_optional_apt_packages | default([]))
+      }}
+
 - name: Install and update managed APT packages
   ansible.builtin.apt:
-    name: "{{ desktop_apt_packages + (desktop_additional_apt_packages | default([], true)) }}"
+    name: "{{ desktop_apt_packages + (desktop_effective_additional_apt_packages | default(desktop_additional_apt_packages | default([], true), true)) }}"
     state: "{{ desktop_apt_package_state }}"
     update_cache: true
     cache_valid_time: "{{ desktop_cache_valid_time }}"
   when:
-    - (desktop_apt_packages + (desktop_additional_apt_packages | default([], true))) | length > 0
+    - (desktop_apt_packages + (desktop_effective_additional_apt_packages | default(desktop_additional_apt_packages | default([], true), true))) | length > 0
     - not (
         ansible_check_mode and
         (

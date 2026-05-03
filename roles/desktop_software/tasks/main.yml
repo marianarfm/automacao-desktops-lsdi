@@ -29,7 +29,6 @@
 
 - name: Install Android SDK components
   ansible.builtin.include_tasks: android_sdk.yml
-  when: desktop_android_sdk.enabled | default(false) | bool
 
 - name: Configure profile exports
   ansible.builtin.include_tasks: profile.yml
@@ -38,3 +37,6 @@
 - name: Enable selected services
   ansible.builtin.include_tasks: services.yml
   when: desktop_enabled_services | length > 0
+
+- name: Remove APT-managed software marked absent
+  ansible.builtin.include_tasks: apt_absent.yml

@@ -1,4 +1,25 @@
 ---
+- name: Remove launcher symlinks for disabled Python virtualenv applications
+  ansible.builtin.file:
+    path: "/usr/local/bin/{{ item.launcher_name }}"
+    state: absent
+  loop: "{{ desktop_python_venv_apps }}"
+  loop_control:
+    label: "{{ item.name }}"
+  when:
+    - not (item.enabled | default(true) | bool)
+    - item.launcher_name is defined
+
+- name: Remove disabled Python virtualenv application directories
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: absent
+  loop: "{{ desktop_python_venv_apps }}"
+  loop_control:
+    label: "{{ item.name }}"
+  when:
+    - not (item.enabled | default(true) | bool)
+
 - name: Ensure Python virtualenv application directories exist
   ansible.builtin.file:
     path: "{{ item.path }}"
@@ -7,6 +28,7 @@
   loop: "{{ desktop_python_venv_apps }}"
   loop_control:
     label: "{{ item.name }}"
+  when: item.enabled | default(true) | bool
 
 - name: Create Python virtual environments
   ansible.builtin.command:
@@ -15,6 +37,7 @@
   loop: "{{ desktop_python_venv_apps }}"
   loop_control:
     label: "{{ item.name }}"
+  when: item.enabled | default(true) | bool
 
 - name: Install or update Python virtualenv packages
   ansible.builtin.pip:
@@ -24,6 +47,7 @@
   loop: "{{ desktop_python_venv_apps }}"
   loop_control:
     label: "{{ item.name }}"
+  when: item.enabled | default(true) | bool
 
 - name: Publish Python application launchers
   ansible.builtin.file:
@@ -34,4 +58,6 @@
   loop: "{{ desktop_python_venv_apps }}"
   loop_control:
     label: "{{ item.name }}"
-  when: item.launcher_name is defined
+  when:
+    - item.enabled | default(true) | bool
+    - item.launcher_name is defined
